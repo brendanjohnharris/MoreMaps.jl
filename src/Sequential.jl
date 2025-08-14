@@ -1,13 +1,8 @@
 # * Regular map
 const SequentialChart = Chart{L, B, P, E} where {L, B <: Sequential, P, E}
 function Base.map(C::SequentialChart, f::Function, itrs...)
-    # * Generate leaf iterator
-    idxs = nindices(leaf(C), first(itrs))
-    xs = map(Base.Fix2(nviews, idxs), itrs)
-
-    # * Preallocate output
-    T = typejoin(Base.return_types(f, map(eltype ∘ eltype ∘ first, xs))...)
-    out = nsimilar(leaf(C), T, first(itrs))
+    # * Get preallocated array, with indices, and a data view
+    out, idxs, xs = preallocate(C, f, itrs)
 
     # * Initialize logger
     init_log!(C, length(idxs))
@@ -22,7 +17,10 @@ function Base.map(C::SequentialChart, f::Function, itrs...)
 
     # * Collect results
     map(nviews(out, idxs), res) do y, x
-        @inbounds y .= x
+        @inbounds y[] = x
     end
+
+    # * Finalize log
+    close_log!(C)
     return out
 end

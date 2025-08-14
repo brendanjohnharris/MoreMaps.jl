@@ -35,3 +35,4 @@ function log_log!(P::InfoProgress, i)
     every = max(1, div(P.total, P.nlogs))
     i % every == 0 && put!(P.channel, true)
 end
+close_log!(P::InfoProgress) = put!(P.channel, false)

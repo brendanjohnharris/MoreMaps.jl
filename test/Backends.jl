@@ -1,8 +1,16 @@
 @testitem "Sequential" setup=[Setup] begin
     x = randn(10)
-    C = Chart(Cartographer.Sequential())
     f = Base.Fix1(^, 2)
-    @inferred map(C, f, x) # Regular map
+    C = Chart(Cartographer.Sequential())
+    y = @inferred map(C, f, x)
+    @test y == map(f, x)
+
+    C = Chart(Cartographer.Sequential(), Float64)
+    y = @inferred map(C, f, x)
+    @test y == map(f, x)
+
+    C = Chart(Cartographer.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
+    @test_throws "return type" (@inferred map(C, f, x))
     @test map(C, f, x) == map(f, x)
 end
 
@@ -10,6 +18,10 @@ end
     x = randn(10)
     C = Chart(Cartographer.Threaded())
     f = Base.Fix1(^, 2)
-    # @inferred map(C, f, x) # Threaded map. Not type stable yet
+    @test_throws "return type" (@inferred map(C, f, x)) # Regular map. Need to specify leaf for type stability
     @test map(C, f, x) == map(f, x)
+
+    C = Chart(Cartographer.Threaded(), Float64)
+    y = @inferred map(C, f, x)
+    @test y == map(f, x)
 end

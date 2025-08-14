@@ -1,3 +1,32 @@
+@testitem "ProgressLogging" setup=[Setup] begin
+    x = randn(10)
+
+    N = 10
+    name = "testname"
+    C = Chart(Cartographer.ProgressLogging(N; name))
+    f = x -> (sleep(0.3); x^2)
+
+    logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
+    y = with_logger(logger) do
+        @inferred map(C, f, x)
+    end
+    @test y == map(f, x)
+    map(logger.logs) do l
+        @test l.level == ProgressLogging.ProgressLevel
+        @test l.message ∈ [name, "done"]
+        @test l.id == C.progress.Progress.id
+    end
+    @test length(logger.logs) == N + 1
+
+    N = 4 # Not divisible
+    C = Chart(Cartographer.InfoProgress(N))
+    logger = TestLogger()
+    y = with_logger(logger) do
+        @inferred map(C, f, x)
+    end
+    @test y == map(f, x)
+    @test length(logger.logs) == N + 2
+end
 @testitem "InfoProgress" setup=[Setup] begin
     x = randn(10)
 
@@ -7,7 +36,7 @@
 
     logger = TestLogger()
     y = with_logger(logger) do
-        @inferred map(C, f, x)
+        map(C, f, x)
     end
     @test y == map(f, x)
     @test map(logger.logs) do l
@@ -19,7 +48,7 @@
     C = Chart(Cartographer.InfoProgress(N))
     logger = TestLogger()
     y = with_logger(logger) do
-        @inferred map(C, f, x)
+        map(C, f, x)
     end
     @test y == map(f, x)
     @test length(logger.logs) == N + 1

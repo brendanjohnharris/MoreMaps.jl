@@ -21,11 +21,16 @@ struct Distributed <: Backend end # ? pmap. See extension for methods
 
 # * Logging backends
 abstract type Progress end
-struct ProgressLogging <: Progress end # ? See extension for methods
+include("InfoProgress.jl")
+mutable struct ProgressLogging <: Progress # ? See extension for methods
+    info::InfoProgress
+    Progress::Any
+end
 struct Term <: Progress end # ? See extension for methods
 struct NoProgress <: Progress end # ? No progress logging
 init_log!(P::NoProgress, N) = nothing
 log_log!(P::NoProgress, i) = nothing
+close_log!(P::NoProgress) = nothing
 
 # * So for ramap we want to flatten the iterator
 
@@ -49,7 +54,8 @@ function Chart{L}(backend::B, progress::P,
                                        E <: Union{NoExpansion, Function}}
     Chart{L, B, P, E}(backend, progress, expansion)
 end
-function Chart(; leaf::Type = Union{},
+abstract type All end # * For default behavior, all element types are considered leaves
+function Chart(; leaf::Type = All,
                backend::B = Sequential(),
                progress::P = NoProgress(),
                expansion::E = NoExpansion()) where {B <: Backend, P <: Progress, E}
@@ -79,28 +85,27 @@ hasexpansion(C::Chart{B, P, L, E}) where {B, P, L, E} = !(E <: NoExpansion)
 
 init_log!(C::Chart, N) = init_log!(progress(C), N) # * Specialized when defining a logger type
 log_log!(C::Chart, i) = log_log!(progress(C), i)
+close_log!(C::Chart) = close_log!(progress(C))
 
 function Base.map(c::C, args...; kwargs...) where {C <: AbstractChart}
     throw(ArgumentError("No map method defined for Chart type $C"))
 end
 
 # * Traversal methods
-function nindex(arr, idxs)
+function nindex(arr, idxs::Tuple)
     if isempty(idxs)
         return arr
+    else
+        return nindex(getindex(arr, first(idxs)), Base.tail(idxs))
     end
-    nindex(getindex(arr, popfirst!(idxs)), idxs)
 end
-function nview(arr, idxs)
-    view(nindex(arr, idxs[1:(end - 1)]), idxs[end])
-end
-
+nindices(::Type{All}, arr::AbstractArray, args...) = nindices(Any, arr, args...)
 function nindices(leaf_type::Type, arr::AbstractArray,
-                  current_path::Vector{Int} = Vector{Int}())
-    indices_found = Vector{Vector{Int}}()
+                  current_path::NTuple{N, Int} where {N} = ())
+    indices_found = Vector{NTuple{N, Int} where N}()
 
     for (i, elem) in enumerate(arr)
-        new_path = vcat(current_path, i)
+        new_path = (current_path..., i)
 
         if isa(elem, AbstractArray) && !isa(elem, leaf_type)
             append!(indices_found, nindices(leaf_type, elem, new_path))
@@ -111,33 +116,112 @@ function nindices(leaf_type::Type, arr::AbstractArray,
 
     return indices_found
 end
+function nview(arr, idxs::Tuple)
+    view(nindex(arr, idxs[1:(end - 1)]), idxs[end])
+end
 function nviews(x, indices)
     return map(Base.Fix1(nview, x), indices)
 end
-function nviews(leaf::Type, x)
-    indices = nestedindices(leaf, x)
-    return nviews(x, indices), indices
-end
 
 """
-Construct a similar nested array to `x` with new leaves of type outleaf, for original leaves
-of type inleaf
+Construct a similar nested array to `x` with new leaves of type outleaf, for original leaves of type inleaf
 """
-function nsimilar(inleaf::Type, outleaf::Type, x::AbstractArray{<:AbstractArray})
-    if x isa AbstractArray{<:inleaf}
+function nsimilar(inleaf::Type{In}, outleaf::Type{Out}, x::T) where {In, Out, T}
+    if _is_leaf(T, In)
         return similar(x, outleaf)
     else
-        return map(x) do y
-            nsimilar(inleaf, outleaf, y)
-        end
+        return map(y -> nsimilar(inleaf, outleaf, y), x)
     end
 end
-function nsimilar(inleaf::Type, outleaf::Type, x::AbstractArray) # Catches uncaught leaves
-    return similar(x, outleaf)
+
+# Helper to determine if this is a leaf array at compile time
+_is_leaf(::Type{<:AbstractArray{E}}, inleaf::Type) where {E} = E <: inleaf
+_is_leaf(::Type, inleaf::Type) = false
+
+# Handle inleaf=Union{}
+_is_leaf(::Type{<:AbstractArray{T}}, ::Type{Union{}}) where {T} = true
+function _is_leaf(::Type{<:AbstractArray{T}},
+                  ::Type{Union{}}) where {T <: AbstractArray}
+    false
+end
+
+# * Shortcuts for type stability with common arrays, up to a few iterative depths. Can these
+#   be generated?
+# When the array is flat, fall back to similar
+nsimilar(::Type{In}, ::Type{Out}, x::AbstractArray{<:In}) where {In, Out} = similar(x, Out)
+nsimilar(::Type{All}, ::Type{Out}, x::AbstractArray) where {Out} = similar(x, Out) # Have to handle all the anys individually unfortunately
+
+# Similar nested arrays can be inferred recursively
+function nsimilar(::Type{In}, ::Type{Out},
+                  x::AbstractArray{<:AbstractArray{<:In}}) where {In, Out}
+    [nsimilar(In, Out, y) for y in x]
+end
+# function nsimilar(::Type{All}, ::Type{Out},
+#                   x::AbstractArray{<:AbstractArray}) where {Out}
+#     similar(x, Out)
+# end
+
+function nsimilar(::Type{In}, ::Type{Out},
+                  x::AbstractArray{<:AbstractArray{<:AbstractArray{<:In}}}) where {In, Out}
+    [nsimilar(In, Out, y) for y in x]
+end
+# function nsimilar(::Type{All}, ::Type{Out},
+#                   x::AbstractArray{<:AbstractArray{<:AbstractArray}}) where {Out}
+#     similar(x, Out)
+# end
+
+# # * Handle the Union{} case
+# function nsimilar(::Type{Union{}}, ::Type{Out},
+#                   x::AbstractArray{<:AbstractArray}) where {Out}
+#     y = similar(x, eltype(x))
+#     map!(x -> nsimilar(Union{}, Out, x), y, x)
+# end
+# function nsimilar(::Type{Union{}}, ::Type{Out}, x::AbstractArray) where {Out}
+#     similar(x, Out)
+# end
+
+# nsimilar(::Type{Union{}}, ::Type{T}, x::AbstractArray{T}) where {T} = deepcopy(x)
+
+# # Dispatch for validated leaf arrays
+# function nsimilar(::Val{true}, inleaf::Type{In}, outleaf::Type{Out},
+#                   x::AbstractArray{E}) where {In, Out, E}
+#     return similar(x, outleaf)
+# end
+
+# # Dispatch for non-leaf arrays
+# function nsimilar(::Val{false}, inleaf::Type{In}, outleaf::Type{Out},
+#                   x::AbstractArray) where {In, Out}
+#     return map(y -> nsimilar(inleaf, outleaf, y), x)
+# end
+
+# * Expansions
+function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E}
+    expand(expansion(C), L, itrs)
+end
+
+function preallocate(C, f, itrs)
+    itrs = expand(C, itrs)
+
+    # * Generate leaf iterator
+    idxs = nindices(leaf(C), first(itrs))
+    xs = map(Base.Fix2(nviews, idxs), itrs)
+
+    # * Preallocate output
+    if leaf(C) === Union{} # This option is NOT type stable... yet.
+        T = Core.Compiler.return_type(f, Tuple{map(eltype ∘ eltype, xs)...})
+    elseif leaf(C) === All # Stable; regular map
+        T = Core.Compiler.return_type(f, map(first, itrs) |> typeof)
+    else # Stable
+        T = Core.Compiler.return_type(f, NTuple{length(itrs), leaf(C)})
+    end
+
+    out = nsimilar(leaf(C), T, first(itrs))
+
+    return out, idxs, xs
 end
 
 # * Component methods
+include("Expansion.jl")
 include("Sequential.jl")
 include("Threaded.jl")
-include("InfoProgress.jl")
 end
