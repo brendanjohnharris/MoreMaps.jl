@@ -1,9 +1,9 @@
 # * Regular map
+export Sequential
 const SequentialChart = Chart{L, B, P, E} where {L, B <: Sequential, P, E}
-function Base.map(C::SequentialChart, f::Function, itrs...)
+function Base.map(f, C::SequentialChart, itrs...)
     # * Get preallocated array, with indices, and a data view
     out, idxs, xs = preallocate(C, f, itrs)
-
     # * Initialize logger
     init_log!(C, length(idxs))
     function g(i, x...)

@@ -1,13 +1,26 @@
 # * Threaded map
+export Threaded
 const ThreadedChart = Chart{L, B} where {L, B <: Threaded}
+function Base.map(f, C::ThreadedChart, itrs...)
+    # * Get preallocated array, with indices, and a data view
+    out, idxs, xs = preallocate(C, f, itrs)
 
-function Base.map(C::ThreadedChart, f, As...)
-    T = typejoin(Base.return_types(f, Base.eltype.(As))...)
-    out = similar(first(As), T)
-    init_log!(C, length(out))
-    Threads.@threads :greedy for i in eachindex(out)
-        @inbounds out[i] = f(map(Base.Fix2(getindex, i), As)...)
+    # * Initialize logger
+    init_log!(C, length(idxs))
+    function g(i, x...)
+        y = f(map(getindex, x)...)
+        log_log!(C, i)
+        return y
+    end
+
+    # * Run loop
+    ys = nviews(out, idxs)
+    Threads.@threads :greedy for i in eachindex(idxs)
+        @inbounds ys[i][] = g(i, map(Base.Fix2(getindex, i), xs)...)
         log_log!(C, i)
     end
+
+    # * Finalize log
+    close_log!(C)
     return out
 end

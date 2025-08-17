@@ -1,7 +1,4 @@
-# * Simple @info logger
-# * The idea is that all logger backends will be curried into the function f, so that the
-#   function specializes onto a NoProgress for final dispatch
-
+export InfoProgress
 mutable struct InfoProgress <: Progress
     nlogs::Int
     current::Atomic{Int}

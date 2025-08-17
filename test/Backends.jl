@@ -18,10 +18,14 @@ end
     x = randn(10)
     C = Chart(Cartographer.Threaded())
     f = Base.Fix1(^, 2)
-    @test_throws "return type" (@inferred map(C, f, x)) # Regular map. Need to specify leaf for type stability
+    @inferred map(C, f, x) # Regular map.
     @test map(C, f, x) == map(f, x)
 
     C = Chart(Cartographer.Threaded(), Float64)
     y = @inferred map(C, f, x)
     @test y == map(f, x)
+
+    C = Chart(Cartographer.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
+    @test_throws "return type" (@inferred map(C, f, x))
+    @test map(C, f, x) == map(f, x)
 end

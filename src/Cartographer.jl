@@ -27,7 +27,9 @@ mutable struct ProgressLogging <: Progress # ? See extension for methods
     Progress::Any
 end
 struct Term <: Progress end # ? See extension for methods
+export Term
 struct NoProgress <: Progress end # ? No progress logging
+export NoProgress
 init_log!(P::NoProgress, N) = nothing
 log_log!(P::NoProgress, i) = nothing
 close_log!(P::NoProgress) = nothing
@@ -35,6 +37,7 @@ close_log!(P::NoProgress) = nothing
 # * So for ramap we want to flatten the iterator
 
 # * Expand inputs
+export NoExpansion
 struct NoExpansion end
 
 abstract type AbstractChart end
@@ -87,7 +90,7 @@ init_log!(C::Chart, N) = init_log!(progress(C), N) # * Specialized when defining
 log_log!(C::Chart, i) = log_log!(progress(C), i)
 close_log!(C::Chart) = close_log!(progress(C))
 
-function Base.map(c::C, args...; kwargs...) where {C <: AbstractChart}
+function Base.map(f, c::C, args...; kwargs...) where {C <: AbstractChart}
     throw(ArgumentError("No map method defined for Chart type $C"))
 end
 
@@ -99,7 +102,10 @@ function nindex(arr, idxs::Tuple)
         return nindex(getindex(arr, first(idxs)), Base.tail(idxs))
     end
 end
-nindices(::Type{All}, arr::AbstractArray, args...) = nindices(Any, arr, args...)
+function nindices(::Type{All}, arr::AbstractArray,
+                  current_path::NTuple{N, Int} where {N} = ())
+    nindices(Any, arr, current_path)
+end
 function nindices(leaf_type::Type, arr::AbstractArray,
                   current_path::NTuple{N, Int} where {N} = ())
     indices_found = Vector{NTuple{N, Int} where N}()
@@ -156,19 +162,18 @@ function nsimilar(::Type{In}, ::Type{Out},
                   x::AbstractArray{<:AbstractArray{<:In}}) where {In, Out}
     [nsimilar(In, Out, y) for y in x]
 end
-# function nsimilar(::Type{All}, ::Type{Out},
-#                   x::AbstractArray{<:AbstractArray}) where {Out}
-#     similar(x, Out)
-# end
+function nsimilar(::Type{All}, ::Type{Out}, x::AbstractArray{<:AbstractArray}) where {Out}
+    similar(x, Out)
+end
 
 function nsimilar(::Type{In}, ::Type{Out},
                   x::AbstractArray{<:AbstractArray{<:AbstractArray{<:In}}}) where {In, Out}
     [nsimilar(In, Out, y) for y in x]
 end
-# function nsimilar(::Type{All}, ::Type{Out},
-#                   x::AbstractArray{<:AbstractArray{<:AbstractArray}}) where {Out}
-#     similar(x, Out)
-# end
+function nsimilar(::Type{All}, ::Type{Out},
+                  x::AbstractArray{<:AbstractArray{<:AbstractArray}}) where {Out}
+    similar(x, Out)
+end
 
 # # * Handle the Union{} case
 # function nsimilar(::Type{Union{}}, ::Type{Out},
@@ -195,13 +200,18 @@ end
 # end
 
 # * Expansions
+function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E <: NoExpansion}
+    itrs
+end
 function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E}
-    expand(expansion(C), L, itrs)
+    out = expand(expansion(C), L, itrs)
+    map(eachindex(itrs)) do i
+        map(Base.Fix2(getindex, i), out)
+    end |> Tuple
 end
 
 function preallocate(C, f, itrs)
-    itrs = expand(C, itrs)
-
+    itrs = expand(C, itrs) # ! Need to think about this....
     # * Generate leaf iterator
     idxs = nindices(leaf(C), first(itrs))
     xs = map(Base.Fix2(nviews, idxs), itrs)

@@ -1,6 +1,4 @@
 # * Goal is the recursively take cartesian products
-expand(::NoExpansion, ::Type, itrs) = itrs
-# * Iterative expansion function (
 function expand(f::Function, ::Type{Union{}},
                 itrs::Union{NTuple{N, T}, AbstractArray{T, N}}) where {N,
                                                                        T <:
@@ -14,7 +12,7 @@ function expand(f::Function, ::Type{Union{}},
 end
 function expand(f::Function, ::Type{All},
                 itrs::Union{Tuple, AbstractArray})
-    return Base.Splat(f)(itrs) |> collect
+    return Base.Splat(f)(itrs) #|> collect
 end
 function expand(f::Function, ::Type{L},
                 itrs::Union{NTuple{N, <:L}, AbstractArray{<:L, N}}) where {L, N}
@@ -22,6 +20,13 @@ function expand(f::Function, ::Type{L},
 end
 function expand(f::Function, ::Type{L},
                 itrs::Union{NTuple{N, T}, AbstractArray{T, N}}) where {L, N, T}
-    out = Base.Splat(f)(itrs) |> collect
+    out = Base.Splat(f)(itrs) #|> collect
     return map(x -> expand(f, L, x), out)
+end
+
+# * Noop to remove method ambiguity
+function expand(f::Function, ::Type{Cartographer.All},
+                ::Union{AbstractArray{<:Cartographer.All, N},
+                        NTuple{N, <:Cartographer.All}}) where {N}
+    nothing
 end
