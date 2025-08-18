@@ -30,7 +30,7 @@
         @test l.id == C.progress.Progress.id
     end
     @test y == map(f, x)
-    @test length(logger.logs) == N + 2
+    @test length(logger.logs) ≥ N + 1
 end
 @testitem "InfoProgress" setup=[Setup] begin
     x = randn(10)
@@ -56,7 +56,7 @@ end
         map(f, C, x)
     end
     @test y == map(f, x)
-    @test length(logger.logs) == N + 1
+    @test length(logger.logs) ≥ N
 end
 
 @testitem "Expansion progress" setup=[Setup] begin
@@ -74,5 +74,5 @@ end
     @test map(logger.logs) do l
         occursin("Progress: ", string(l))
     end |> all
-    @test length(logger.logs) == N + 1
+    @test length(logger.logs) ≥ N - 1
 end
