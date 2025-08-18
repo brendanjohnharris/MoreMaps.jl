@@ -58,3 +58,21 @@ end
     @test y == map(f, x)
     @test length(logger.logs) == N + 1
 end
+
+@testitem "Expansion progress" setup=[Setup] begin
+    x = randn(10)
+    y = randn(10)
+    N = 10
+    C = Chart(Cartographer.InfoProgress(N), Iterators.product)
+    f = (x...) -> (sleep(0.01); +(x...))
+
+    logger = TestLogger()
+    z = with_logger(logger) do
+        map(f, C, x, y)
+    end
+    @test z == map(sum, Iterators.product(x, y))
+    @test map(logger.logs) do l
+        occursin("Progress: ", string(l))
+    end |> all
+    @test length(logger.logs) == N + 1
+end

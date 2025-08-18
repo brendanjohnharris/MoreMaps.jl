@@ -167,22 +167,26 @@ end
 nsimilar(::Type{In}, ::Type{Out}, x::AbstractArray{<:In}) where {In, Out} = similar(x, Out)
 nsimilar(::Type{All}, ::Type{Out}, x::AbstractArray) where {Out} = similar(x, Out) # Have to handle all the anys individually unfortunately
 
-# Similar nested arrays can be inferred recursively
-function nsimilar(::Type{In}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray{<:In}}) where {In, Out}
-    [nsimilar(In, Out, y) for y in x]
-end
-function nsimilar(::Type{All}, ::Type{Out}, x::AbstractArray{<:AbstractArray}) where {Out}
-    similar(x, Out)
-end
+@static if VERSION < v"1.12"
+    # Similar nested arrays can be inferred recursively
+    function nsimilar(::Type{In}, ::Type{Out},
+                      x::AbstractArray{<:AbstractArray{<:In}}) where {In, Out}
+        [nsimilar(In, Out, y) for y in x]
+    end
+    function nsimilar(::Type{All}, ::Type{Out},
+                      x::AbstractArray{<:AbstractArray}) where {Out}
+        similar(x, Out)
+    end
 
-function nsimilar(::Type{In}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray{<:AbstractArray{<:In}}}) where {In, Out}
-    [nsimilar(In, Out, y) for y in x]
-end
-function nsimilar(::Type{All}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray{<:AbstractArray}}) where {Out}
-    similar(x, Out)
+    function nsimilar(::Type{In}, ::Type{Out},
+                      x::AbstractArray{<:AbstractArray{<:AbstractArray{<:In}}}) where {In,
+                                                                                       Out}
+        [nsimilar(In, Out, y) for y in x]
+    end
+    function nsimilar(::Type{All}, ::Type{Out},
+                      x::AbstractArray{<:AbstractArray{<:AbstractArray}}) where {Out}
+        similar(x, Out)
+    end
 end
 
 # # * Handle the Union{} case

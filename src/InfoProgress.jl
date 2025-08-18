@@ -20,7 +20,6 @@ function init_log!(P::InfoProgress, total)
     P.lck = ReentrantLock()
 
     every = max(1, div(P.total, P.nlogs))
-
     @async while take!(P.channel)
         Threads.lock(P.lck) do
             Threads.atomic_add!(P.current, 1)

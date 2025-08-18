@@ -11,6 +11,36 @@ using TestItemRunner
     using Logging
     using ProgressLogging
 
+    # Helper function to validate progress log messages
+    function validate_progress_logs(logs, expected_total)
+        for log in logs
+            if log.level == Logging.Info && occursin("Progress:", string(log.message))
+                # Parse progress message like "Progress: 20 / 50"
+                msg = string(log.message)
+                if occursin("/", msg)
+                    parts = split(msg, "/")
+                    if length(parts) >= 2
+                        try
+                            current_str = strip(split(parts[1], ":")[end])
+                            total_str = strip(parts[2])
+
+                            current = parse(Int, current_str)
+                            total = parse(Int, total_str)
+
+                            # Validate that current <= total
+                            @test current <= total
+
+                            # Also validate that total matches expected
+                            @test total == expected_total
+                        catch e
+                            @warn "Could not parse progress message: $msg" exception=e
+                        end
+                    end
+                end
+            end
+        end
+    end
+
     function test_generic_input(x)
         # Define all available backends
         backends = [
@@ -52,37 +82,84 @@ using TestItemRunner
         for backend in backends, logger in loggers, leaf_type in leaf_types
             # Test 1: Basic identity mapping
             C = Chart(leaf_type, backend, logger, NoExpansion())
-            try
-                y1 = map(identity, C, x)
-                @test y1 == x
 
-                # Test 2: Simple transformation
-                if eltype(x) <: Number
-                    y2 = map(x -> x + 1, C, x)
-                    @test y2 == x .+ 1
-                else
-                    y2 = map(x -> x, C, x)  # Fallback for non-numeric types
-                    @test y2 == x
-                end
+            # Capture logs for InfoProgress validation
+            logs = if logger isa InfoProgress
+                logger = TestLogger()
+                with_logger(logger) do
+                    try
+                        y1 = map(identity, C, x)
+                        @test y1 == x
 
-                # Test 3: Multiple iterators (if not empty)
-                if !isempty(x)
-                    if eltype(x) <: Number
-                        y3 = map(+, C, x, x)
-                        @test y3 == x .+ x
-                    else
-                        # For non-numeric, test with a function that works on any type
-                        y3 = map((a, b) -> a, C, x, x)  # Just return first argument
-                        @test y3 == x
+                        # Test 2: Simple transformation
+                        if eltype(x) <: Number
+                            y2 = map(x -> x + 1, C, x)
+                            @test y2 == x .+ 1
+                        else
+                            y2 = map(x -> x, C, x)  # Fallback for non-numeric types
+                            @test y2 == x
+                        end
+
+                        # Test 3: Multiple iterators (if not empty)
+                        if !isempty(x)
+                            if eltype(x) <: Number
+                                y3 = map(+, C, x, x)
+                                @test y3 == x .+ x
+                            else
+                                # For non-numeric, test with a function that works on any type
+                                y3 = map((a, b) -> a, C, x, x)  # Just return first argument
+                                @test y3 == x
+                            end
+                        end
+
+                    catch e
+                        # Some combinations might not be type stable or supported
+                        if e isa BoundsError || e isa MethodError
+                            @test_nowarn map(identity, C, x)  # At least check it doesn't crash
+                        else
+                            rethrow(e)
+                        end
                     end
                 end
 
-            catch e
-                # Some combinations might not be type stable or supported
-                if e isa BoundsError || e isa MethodError
-                    @test_nowarn map(C, identity, x)  # At least check it doesn't crash
-                else
-                    rethrow(e)
+                # Validate progress messages
+                if logger isa TestLogger
+                    validate_progress_logs(logger.logs, length(x))
+                end
+            else
+                # Non-InfoProgress loggers - run tests normally
+                try
+                    y1 = map(identity, C, x)
+                    @test y1 == x
+
+                    # Test 2: Simple transformation
+                    if eltype(x) <: Number
+                        y2 = map(x -> x + 1, C, x)
+                        @test y2 == x .+ 1
+                    else
+                        y2 = map(x -> x, C, x)  # Fallback for non-numeric types
+                        @test y2 == x
+                    end
+
+                    # Test 3: Multiple iterators (if not empty)
+                    if !isempty(x)
+                        if eltype(x) <: Number
+                            y3 = map(+, C, x, x)
+                            @test y3 == x .+ x
+                        else
+                            # For non-numeric, test with a function that works on any type
+                            y3 = map((a, b) -> a, C, x, x)  # Just return first argument
+                            @test y3 == x
+                        end
+                    end
+
+                catch e
+                    # Some combinations might not be type stable or supported
+                    if e isa BoundsError || e isa MethodError
+                        @test_nowarn map(identity, C, x)  # At least check it doesn't crash
+                    else
+                        rethrow(e)
+                    end
                 end
             end
         end
@@ -93,14 +170,37 @@ using TestItemRunner
                 # Test cartesian product expansion
                 C_expand = Chart(Cartographer.All, backend, logger, Iterators.product)
 
-                try
-                    x_small = x[1:min(3, length(x))]
-                    y_expand = map((a, b) -> (a, b), C_expand, x_small, x_small)
-                    expected = [(a, b) for a in x_small, b in x_small]
-                    @test y_expand == expected
-                catch e
-                    if !(e isa BoundsError || e isa MethodError)
-                        rethrow(e)
+                # Capture logs for InfoProgress validation
+                if logger isa InfoProgress
+                    logger = TestLogger()
+                    with_logger(logger) do
+                        try
+                            x_small = x[1:min(3, length(x))]
+                            y_expand = map((a, b) -> (a, b), C_expand, x_small, x_small)
+                            expected = [(a, b) for a in x_small, b in x_small]
+                            @test y_expand == expected
+                        catch e
+                            if !(e isa BoundsError || e isa MethodError)
+                                rethrow(e)
+                            end
+                        end
+                    end
+
+                    # Validate progress messages for expansion
+                    if logger isa TestLogger
+                        expected_total = length(x[1:min(3, length(x))])^2  # Cartesian product size
+                        validate_progress_logs(logger.logs, expected_total)
+                    end
+                else
+                    try
+                        x_small = x[1:min(3, length(x))]
+                        y_expand = map((a, b) -> (a, b), C_expand, x_small, x_small)
+                        expected = [(a, b) for a in x_small, b in x_small]
+                        @test y_expand == expected
+                    catch e
+                        if !(e isa BoundsError || e isa MethodError)
+                            rethrow(e)
+                        end
                     end
                 end
             end
@@ -172,13 +272,23 @@ using TestItemRunner
             end
         end
 
-        # Test with different progress logging levels
+        # Test with different progress logging levels - WITH VALIDATION
         if length(x) > 10
             for nlogs in [1, 3, 5]
                 C_progress = Chart(Cartographer.All, Sequential(), InfoProgress(nlogs),
                                    NoExpansion())
-                y_progress = map(identity, C_progress, x)
-                @test y_progress == x
+
+                # Capture and validate progress logs
+                logger = TestLogger()
+                with_logger(logger) do
+                    y_progress = map(identity, C_progress, x)
+                    @test y_progress == x
+                end
+
+                # Validate progress messages
+                if logger isa TestLogger
+                    validate_progress_logs(logger.logs, length(x))
+                end
             end
         end
 
@@ -234,7 +344,8 @@ end
     x = [[[randn(2) for _ in 1:2] for _ in 1:2] for _ in 1:2]
     inleaf = Float64
     outleaf = Int32
-    @test_throws "return type" (@inferred Cartographer.nsimilar(inleaf, outleaf, x))
+    VERSION < v"1.12" &&
+        @test_throws "return type" (@inferred Cartographer.nsimilar(inleaf, outleaf, x))
     y = @test_nowarn Cartographer.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Vector{Vector{Int32}}}}
 

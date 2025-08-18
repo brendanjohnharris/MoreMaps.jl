@@ -24,6 +24,9 @@ end
 @testitem "DimensionalData generic" setup=[Setup] begin
     using DimensionalData
     x = DimArray(x -> rand(), X(1:10))
+    C = Chart(Threaded(), Cartographer.All, NoExpansion(), InfoProgress())
+    map(identity, C, x)
+
     test_generic_input(x)
 
     x = map((x...) -> rand(), Chart(Iterators.product), X(1:10), Y(1:5))
