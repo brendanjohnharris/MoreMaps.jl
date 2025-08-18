@@ -8,7 +8,7 @@
 
     logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
     y = with_logger(logger) do
-        @inferred map(C, f, x)
+        @inferred map(f, C, x)
     end
     @test y == map(f, x)
     map(logger.logs) do l
@@ -19,10 +19,10 @@
     @test length(logger.logs) == N + 1
 
     N = 4 # Not divisible
-    C = Chart(Cartographer.ProgressLogging(N))
-    logger = TestLogger()
+    C = Chart(Cartographer.ProgressLogging(N; name))
+    logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
     y = with_logger(logger) do
-        @inferred map(C, f, x)
+        @inferred map(f, C, x)
     end
     map(logger.logs) do l
         @test l.level == ProgressLogging.ProgressLevel
@@ -41,7 +41,7 @@ end
 
     logger = TestLogger()
     y = with_logger(logger) do
-        map(C, f, x)
+        map(f, C, x)
     end
     @test y == map(f, x)
     @test map(logger.logs) do l
@@ -53,7 +53,7 @@ end
     C = Chart(Cartographer.InfoProgress(N))
     logger = TestLogger()
     y = with_logger(logger) do
-        map(C, f, x)
+        map(f, C, x)
     end
     @test y == map(f, x)
     @test length(logger.logs) == N + 1

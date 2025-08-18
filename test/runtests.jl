@@ -53,26 +53,26 @@ using TestItemRunner
             # Test 1: Basic identity mapping
             C = Chart(leaf_type, backend, logger, NoExpansion())
             try
-                y1 = map(C, identity, x)
+                y1 = map(identity, C, x)
                 @test y1 == x
 
                 # Test 2: Simple transformation
                 if eltype(x) <: Number
-                    y2 = map(C, x -> x + 1, x)
+                    y2 = map(x -> x + 1, C, x)
                     @test y2 == x .+ 1
                 else
-                    y2 = map(C, x -> x, x)  # Fallback for non-numeric types
+                    y2 = map(x -> x, C, x)  # Fallback for non-numeric types
                     @test y2 == x
                 end
 
                 # Test 3: Multiple iterators (if not empty)
                 if !isempty(x)
                     if eltype(x) <: Number
-                        y3 = map(C, +, x, x)
+                        y3 = map(+, C, x, x)
                         @test y3 == x .+ x
                     else
                         # For non-numeric, test with a function that works on any type
-                        y3 = map(C, (a, b) -> a, x, x)  # Just return first argument
+                        y3 = map((a, b) -> a, C, x, x)  # Just return first argument
                         @test y3 == x
                     end
                 end
@@ -95,7 +95,7 @@ using TestItemRunner
 
                 try
                     x_small = x[1:min(3, length(x))]
-                    y_expand = map(C_expand, (a, b) -> (a, b), x_small, x_small)
+                    y_expand = map((a, b) -> (a, b), C_expand, x_small, x_small)
                     expected = [(a, b) for a in x_small, b in x_small]
                     @test y_expand == expected
                 catch e
@@ -113,18 +113,18 @@ using TestItemRunner
             # Type stability test (may fail for some combinations)
             try
                 if leaf_type != Union{} && isconcretetype(eltype(x))
-                    y_stable = @inferred map(C_stable, identity, x)
+                    y_stable = @inferred map(identity, C_stable, x)
                     @test y_stable == x
                 else
                     # For Union{} and non-concrete types, just test it works
-                    @test_throws "return type" (@inferred map(C_stable, identity, x))
-                    y_unstable = map(C_stable, identity, x)
+                    @test_throws "return type" (@inferred map(identity, C_stable, x))
+                    y_unstable = map(identity, C_stable, x)
                     @test y_unstable == x
                 end
             catch e
                 if e isa ErrorException && contains(string(e), "return type")
                     # Expected type instability
-                    y_unstable = map(C_stable, identity, x)
+                    y_unstable = map(identity, C_stable, x)
                     @test y_unstable == x
                 else
                     rethrow(e)
@@ -137,7 +137,7 @@ using TestItemRunner
             # Empty array tests
             for backend in backends[1:1], logger in loggers[1:1]  # Just test one combination for empty
                 C_empty = Chart(Cartographer.All, backend, logger, NoExpansion())
-                y_empty = map(C_empty, identity, x)
+                y_empty = map(identity, C_empty, x)
                 @test isempty(y_empty)
                 @test typeof(y_empty) == typeof(x)
             end
@@ -150,7 +150,7 @@ using TestItemRunner
             # Test with incompatible function (should still work or give meaningful error)
             try
                 if eltype(x) <: Number
-                    y_sqrt = map(C_error, sqrt, x)
+                    y_sqrt = map(sqrt, C_error, x)
                     @test length(y_sqrt) == length(x)
                 end
             catch e
@@ -166,8 +166,8 @@ using TestItemRunner
                                  NoExpansion())
 
             if eltype(x) <: Number
-                y_threaded = map(C_threaded, x -> x^2, x)
-                y_sequential = map(C_sequential, x -> x^2, x)
+                y_threaded = map(x -> x^2, C_threaded, x)
+                y_sequential = map(x -> x^2, C_sequential, x)
                 @test y_threaded == y_sequential
             end
         end
@@ -177,7 +177,7 @@ using TestItemRunner
             for nlogs in [1, 3, 5]
                 C_progress = Chart(Cartographer.All, Sequential(), InfoProgress(nlogs),
                                    NoExpansion())
-                y_progress = map(C_progress, identity, x)
+                y_progress = map(identity, C_progress, x)
                 @test y_progress == x
             end
         end

@@ -129,6 +129,16 @@ function nviews(x, indices)
     return map(Base.Fix1(nview, x), indices)
 end
 
+function sniff_leaf(::Type{L}, ::Type{T}) where {L, T}
+    if _is_leaf(T, L)
+        return true
+    elseif T <: AbstractArray
+        return sniff_leaf(L, eltype(T))
+    else
+        return false
+    end
+end
+
 """
 Construct a similar nested array to `x` with new leaves of type outleaf, for original leaves of type inleaf
 """
@@ -225,6 +235,9 @@ function preallocate(C, f, itrs)
         T = Core.Compiler.return_type(f, NTuple{length(itrs), leaf(C)})
     end
 
+    if leaf(C) !== All && !sniff_leaf(leaf(C), typeof(first(itrs)))
+        throw(ArgumentError("Leaf type $(leaf(C)) not found in input of type $(typeof(first(itrs)))"))
+    end
     out = nsimilar(leaf(C), T, first(itrs))
 
     return out, idxs, xs
