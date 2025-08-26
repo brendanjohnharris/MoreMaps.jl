@@ -10,6 +10,7 @@ using TestItemRunner
     using Random
     using Logging
     using ProgressLogging
+    using BenchmarkTools
 
     # Helper function to validate progress log messages
     function validate_progress_logs(logs, expected_total)
@@ -369,6 +370,3 @@ end
     @inferred Cartographer.nindex(x, first(idxs))
     @test_throws "return type" (@inferred Cartographer.nviews(x, idxs))
 end
-# @testset "Cartographer.jl" begin
-#     # Write your tests here.
-# end

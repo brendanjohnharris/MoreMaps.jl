@@ -17,7 +17,12 @@ import Base.Threads: Atomic, ReentrantLock, AbstractLock
 abstract type Backend end
 struct Sequential <: Backend end # ? Regular sequential map
 struct Threaded <: Backend end # ? Threads.@threads
-struct Distributed <: Backend end # ? pmap. See extension for methods
+struct Pmap <: Backend end
+struct Daggermap <: Backend
+    options::Base.Pairs
+end
+Daggermap(; kwargs...) = Daggermap(kwargs)
+export Daggermap
 
 # * Logging backends
 abstract type Progress end
@@ -249,4 +254,5 @@ end
 include("Expansion.jl")
 include("Sequential.jl")
 include("Threaded.jl")
+include("Pmap.jl")
 end

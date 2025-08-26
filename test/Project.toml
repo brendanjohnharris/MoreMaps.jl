@@ -1,5 +1,7 @@
 [deps]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
+Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
 DimensionalData = "0703355e-b756-11e9-17c0-8b28908087d0"
 Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
