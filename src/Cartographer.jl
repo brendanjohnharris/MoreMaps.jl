@@ -2,6 +2,7 @@ module Cartographer
 export Chart
 import Distributed: RemoteChannel
 import Base.Threads: Atomic, ReentrantLock, AbstractLock
+import Base.mapslices
 
 # Must have functionality:
 # - Option to thread the map
@@ -55,22 +56,25 @@ struct Chart{L <: Any,
     backend::B
     progress::P
     expansion::E
+    dims::Any
 end
 
 function Chart{L}(backend::B, progress::P,
-                  expansion::E) where {L <: Any, B <: Backend, P <: Progress,
-                                       E <: Union{NoExpansion, Function}}
-    Chart{L, B, P, E}(backend, progress, expansion)
+                  expansion::E;
+                  dims = nothing) where {L <: Any, B <: Backend, P <: Progress,
+                                         E <: Union{NoExpansion, Function}}
+    Chart{L, B, P, E}(backend, progress, expansion, dims)
 end
 abstract type All end # * For default behavior, all element types are considered leaves
 function Chart(; leaf::Type = All,
                backend::B = Sequential(),
                progress::P = NoProgress(),
-               expansion::E = NoExpansion()) where {B <: Backend, P <: Progress, E}
-    Chart{leaf}(backend, progress, expansion)
+               expansion::E = NoExpansion(),
+               dims = nothing) where {B <: Backend, P <: Progress, E}
+    Chart{leaf}(backend, progress, expansion; dims)
 end
 
-function Chart(args...)
+function Chart(args...; dims = nothing)
     kwargs = map(args) do arg
         if arg isa Backend
             :backend => arg
@@ -82,13 +86,14 @@ function Chart(args...)
             :expansion => arg
         end
     end
-    Chart(; kwargs...)
+    Chart(; dims, kwargs...)
 end
 
 leaf(C::Chart{L}) where {L} = L
 backend(C::Chart) = C.backend
 progress(C::Chart) = C.progress
 expansion(C::Chart) = C.expansion
+dims(C::Chart) = C.dims
 hasexpansion(C::Chart{B, P, L, E}) where {B, P, L, E} = !(E <: NoExpansion)
 
 init_log!(C::Chart, N) = init_log!(progress(C), N) # * Specialized when defining a logger type
@@ -134,16 +139,6 @@ function nviews(x, indices)
     return map(Base.Fix1(nview, x), indices)
 end
 
-function sniff_leaf(::Type{L}, ::Type{T}) where {L, T}
-    if _is_leaf(T, L)
-        return true
-    elseif T <: AbstractArray
-        return sniff_leaf(L, eltype(T))
-    else
-        return false
-    end
-end
-
 """
 Construct a similar nested array to `x` with new leaves of type outleaf, for original leaves of type inleaf
 """
@@ -158,6 +153,7 @@ end
 # Helper to determine if this is a leaf array at compile time
 _is_leaf(::Type{<:AbstractArray{E}}, inleaf::Type) where {E} = E <: inleaf
 _is_leaf(::Type, inleaf::Type) = false
+_is_leaf(::Type{<:AbstractSlices{E}}, inleaf::Type) where {E} = E <: inleaf
 
 # Handle inleaf=Union{}
 _is_leaf(::Type{<:AbstractArray{T}}, ::Type{Union{}}) where {T} = true
@@ -169,6 +165,7 @@ end
 # * Shortcuts for type stability with common arrays, up to a few iterative depths. Can these
 #   be generated?
 # When the array is flat, fall back to similar
+nsimilar(::Type{In}, ::Type{Out}, x::In) where {In, Out} = similar(x, Out)
 nsimilar(::Type{In}, ::Type{Out}, x::AbstractArray{<:In}) where {In, Out} = similar(x, Out)
 nsimilar(::Type{All}, ::Type{Out}, x::AbstractArray) where {Out} = similar(x, Out) # Have to handle all the anys individually unfortunately
 
@@ -227,6 +224,16 @@ function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E}
     end |> Tuple
 end
 
+function sniff_leaf(::Type{L}, ::Type{T}) where {L, T}
+    if _is_leaf(T, L)
+        return true
+    elseif T <: AbstractArray
+        return sniff_leaf(L, eltype(T))
+    else
+        return false
+    end
+end
+
 function preallocate(C, f, itrs)
     itrs = expand(C, itrs) # ! Need to think about this....
     # * Generate leaf iterator
@@ -241,13 +248,24 @@ function preallocate(C, f, itrs)
     else # Stable
         T = Core.Compiler.return_type(f, NTuple{length(itrs), leaf(C)})
     end
-
-    if leaf(C) !== All && !sniff_leaf(leaf(C), typeof(first(itrs)))
+    if leaf(C) !== All && !sniff_leaf(leaf(C), typeof(first(itrs))) &&
+       !(first(itrs) isa leaf(C))
         throw(ArgumentError("Leaf type $(leaf(C)) not found in input of type $(typeof(first(itrs)))"))
     end
+
     out = nsimilar(leaf(C), T, first(itrs))
 
     return out, idxs, xs
+end
+
+function mapslices(f, C::Chart, x...)
+    dims = Cartographer.dims(C)
+    if isnothing(dims)
+        return f(x...)
+    else
+        xs = eachslice.(x; dims)
+        return map(f, xs...)
+    end
 end
 
 # * Component methods

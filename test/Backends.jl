@@ -12,6 +12,12 @@
     C = Chart(Cartographer.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
     @test_throws "return type" (@inferred map(f, C, x))
     @test map(f, C, x) == map(f, x)
+
+    # * Dim mapping
+    x = rand(10, 5)
+    C = Chart(Cartographer.Sequential(), Matrix; dims=2)
+    y = @inferred map(sqrt, C, x)
+    @test y == map(f, x)
 end
 
 @testitem "Threaded" setup=[Setup] begin

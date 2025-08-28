@@ -7,7 +7,7 @@ function Base.map(f, C::SequentialChart, itrs...)
     # * Initialize logger
     init_log!(C, length(idxs))
     function g(i, x...)
-        y = f(map(getindex, x)...)
+        y = mapslices(f, C, map(getindex, x)...)
         log_log!(C, i)
         return y
     end

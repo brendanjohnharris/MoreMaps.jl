@@ -33,3 +33,23 @@ end
 
     test_generic_input(x)
 end
+
+@testitem "DimensionalData eachslice" setup=[Setup] begin
+    using DimensionalData
+
+    x = DimArray(rand(10, 5), (X(1:10), Y(1:5)))
+    C = Chart()
+    y = map(sum, C, eachslice(x, dims = Y))
+
+    x = DimArray([x for _ in 1:5], Z(1:5))
+    C = Chart(DimArray{Float64})
+    f(x) = sum.(eachslice(x, dims = Y))
+    y = map(sum, C, x) # !!!! wrong
+    z = map(f, x)
+    @test z == y
+
+    C = Chart(DimArray{Float64})
+    w = map(x -> eachslice(x, dims = Y), C, x)
+    C = Chart(DimArray{Float64})
+    w = map(sum, C, w) # ! Slices not recognised as arrays???
+end
