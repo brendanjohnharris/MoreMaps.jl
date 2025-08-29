@@ -239,7 +239,7 @@ function preallocate(C, f, itrs)
 
     # * Preallocate output
     if leaf(C) === Union{} # This option is NOT type stable... yet.
-        XT = Core.Compiler.return_type(f, Tuple{map(eltype ∘ eltype, xs)...})
+        T = Core.Compiler.return_type(f, Tuple{map(eltype ∘ eltype, xs)...})
     elseif leaf(C) === All # Stable; regular map
         T = Core.Compiler.return_type(f, map(first, itrs) |> typeof)
     else # Stable
