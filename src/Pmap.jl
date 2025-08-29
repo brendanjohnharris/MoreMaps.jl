@@ -14,16 +14,16 @@ function Base.map(f, C::PmapChart, itrs...)
         return y
     end
 
-    # * Run loop
-    ys = nviews(out, idxs)
-    _ys = pmap(enumerate(zip(xs...))) do (i, xs) # Dirty copy...
-        g(i, xs...)
+    try # * Run loop
+        ys = nviews(out, idxs)
+        _ys = pmap(enumerate(zip(xs...))) do (i, xs) # Dirty copy...
+            g(i, xs...)
+        end
+        for (i, y) in enumerate(_ys)
+            @inbounds ys[i][] = y
+        end
+    finally # * Finalize log
+        close_log!(C)
     end
-    for (i, y) in enumerate(_ys)
-        @inbounds ys[i][] = y
-    end
-
-    # * Finalize log
-    close_log!(C)
     return out
 end

@@ -3,7 +3,7 @@
 
     N = 10
     name = "testname"
-    C = Chart(Cartographer.ProgressLogging(N; name))
+    C = Chart(Cartographer.ProgressLogger(N; name))
     f = x -> (sleep(0.3); x^2)
 
     logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
@@ -19,7 +19,7 @@
     @test length(logger.logs) == N + 1
 
     N = 4 # Not divisible
-    C = Chart(Cartographer.ProgressLogging(N; name))
+    C = Chart(Cartographer.ProgressLogger(N; name))
     logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
     y = with_logger(logger) do
         @inferred map(f, C, x)
@@ -75,4 +75,18 @@ end
         occursin("Progress: ", string(l))
     end |> all
     @test length(logger.logs) ≥ N - 1
+end
+
+@testitem "Term" setup=[Setup] begin
+    using Term
+    x = randn(10)
+
+    C = Chart(Cartographer.TermLogger())
+    f = x -> (sleep(0.3); x^2)
+    map(f, C, x)
+
+    N = 10
+    name = "testname"
+    C = Chart(Cartographer.TermLogger(N))
+    f = x -> (sleep(0.3); x^2)
 end

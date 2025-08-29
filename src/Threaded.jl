@@ -13,20 +13,20 @@ function Base.map(f, C::ThreadedChart, itrs...)
         return y
     end
 
-    # * Run loop
-    ys = nviews(out, idxs)
+    try # * Run loop
+        ys = nviews(out, idxs)
 
-    @static if VERSION >= v"1.11"
-        Threads.@threads :greedy for i in eachindex(idxs)
-            @inbounds ys[i][] = g(i, map(Base.Fix2(getindex, i), xs)...)
+        @static if VERSION >= v"1.11"
+            Threads.@threads :greedy for i in eachindex(idxs)
+                @inbounds ys[i][] = g(i, map(Base.Fix2(getindex, i), xs)...)
+            end
+        else
+            Threads.@threads for i in eachindex(idxs)
+                @inbounds ys[i][] = g(i, map(Base.Fix2(getindex, i), xs)...)
+            end
         end
-    else
-        Threads.@threads for i in eachindex(idxs)
-            @inbounds ys[i][] = g(i, map(Base.Fix2(getindex, i), xs)...)
-        end
+    finally # * Finalize log
+        close_log!(C)
     end
-
-    # * Finalize log
-    close_log!(C)
     return out
 end

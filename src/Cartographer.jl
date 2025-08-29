@@ -27,8 +27,12 @@ export Daggermap
 # * Logging backends
 abstract type Progress end
 include("InfoProgress.jl")
-mutable struct ProgressLogging <: Progress # ? See extension for methods
+mutable struct ProgressLogger <: Progress # ? See extension for methods
     info::InfoProgress
+    Progress::Any
+end
+mutable struct TermLogger <: Progress # ? See extension for methods
+    nlogs::Int
     Progress::Any
 end
 struct Term <: Progress end # ? See extension for methods
@@ -235,7 +239,7 @@ function preallocate(C, f, itrs)
 
     # * Preallocate output
     if leaf(C) === Union{} # This option is NOT type stable... yet.
-        T = Core.Compiler.return_type(f, Tuple{map(eltype ∘ eltype, xs)...})
+        XT = Core.Compiler.return_type(f, Tuple{map(eltype ∘ eltype, xs)...})
     elseif leaf(C) === All # Stable; regular map
         T = Core.Compiler.return_type(f, map(first, itrs) |> typeof)
     else # Stable

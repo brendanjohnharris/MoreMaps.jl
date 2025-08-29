@@ -7,12 +7,12 @@ using UUIDs
 import Base.Threads: Atomic, ReentrantLock
 import Distributed: RemoteChannel
 
-function Cartographer.ProgressLogging(args...; id = UUIDs.uuid4(), kwargs...)
-    Cartographer.ProgressLogging(Cartographer.InfoProgress(args...),
-                                 PLG.Progress(id; kwargs...))
+function Cartographer.ProgressLogger(args...; id = UUIDs.uuid4(), kwargs...)
+    Cartographer.ProgressLogger(Cartographer.InfoProgress(args...),
+                                PLG.Progress(id; kwargs...))
 end
 
-function init_log!(P::Cartographer.ProgressLogging, total)
+function init_log!(P::Cartographer.ProgressLogger, total)
     P.info.total = total
     P.info.current = Atomic{Int}(0)
     P.info.channel = RemoteChannel(() -> Channel{Bool}(total), 1)
@@ -27,9 +27,9 @@ function init_log!(P::Cartographer.ProgressLogging, total)
         end
     end
 end
-log_log!(P::Cartographer.ProgressLogging, i) = log_log!(P.info, i)
+log_log!(P::Cartographer.ProgressLogger, i) = log_log!(P.info, i)
 
-function close_log!(P::Cartographer.ProgressLogging)
+function close_log!(P::Cartographer.ProgressLogger)
     @logmsg PLG.ProgressLevel progress="done" _id=P.Progress.id
 end
 

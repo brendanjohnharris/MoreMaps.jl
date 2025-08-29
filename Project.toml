@@ -10,10 +10,12 @@ Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
 ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
 UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
 Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
+Term = "22787eb5-b846-44ae-b979-8e399b8463ab"
 
 [extensions]
 ProgressLoggingExt = ["ProgressLogging", "UUIDs"]
 DaggerExt = ["Dagger"]
+TermExt = ["Term"]
 
 [compat]
 Distributed = "1.10"

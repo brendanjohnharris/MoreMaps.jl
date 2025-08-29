@@ -12,15 +12,16 @@ function Base.map(f, C::SequentialChart, itrs...)
         return y
     end
 
-    # * Run loop
-    res = @sync Base.map(g, eachindex(idxs), xs...)
+    try # * Run loop
+        res = @sync Base.map(g, eachindex(idxs), xs...)
 
-    # * Collect results
-    map(nviews(out, idxs), res) do y, x
-        @inbounds y[] = x
+        # * Collect results
+        map(nviews(out, idxs), res) do y, x
+            @inbounds y[] = x
+        end
+
+    finally # * Finalize log
+        close_log!(C)
     end
-
-    # * Finalize log
-    close_log!(C)
     return out
 end

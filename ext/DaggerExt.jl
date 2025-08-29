@@ -18,20 +18,20 @@ function Base.map(f, C::DaggermapChart, itrs...)
         return y
     end
 
-    # * Run loop
-    ys = nviews(out, idxs)
+    try # * Run loop
+        ys = nviews(out, idxs)
 
-    _ys = map(eachindex(idxs)) do i
-        x = map(Base.Fix2(getindex, i), xs)
-        Dagger.@spawn options... g(i, x...)
+        _ys = map(eachindex(idxs)) do i
+            x = map(Base.Fix2(getindex, i), xs)
+            Dagger.@spawn options... g(i, x...)
+        end
+
+        for (i, y) in enumerate(fetch.(_ys))
+            @inbounds ys[i][] = y
+        end
+    finally # * Finalize log
+        close_log!(C)
     end
-
-    for (i, y) in enumerate(fetch.(_ys))
-        @inbounds ys[i][] = y
-    end
-
-    # * Finalize log
-    close_log!(C)
     return out
 end
 end
