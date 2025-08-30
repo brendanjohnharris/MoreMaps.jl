@@ -232,7 +232,7 @@ function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E}
 end
 
 function preallocate(C, f, itrs)
-    itrs = expand(C, itrs) # ! Need to think about this....
+    itrs = expand(C, itrs)
     # * Generate leaf iterator
     idxs = nindices(leaf(C), first(itrs))
     xs = map(Base.Fix2(nviews, idxs), itrs)
@@ -256,7 +256,7 @@ end
 
 # * Component methods
 include("Expansion.jl")
-include("Sequential.jl")
-include("Threaded.jl")
-include("Pmap.jl")
+include("backends/Sequential.jl")
+include("backends/Threaded.jl")
+include("backends/Pmap.jl")
 end
