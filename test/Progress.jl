@@ -3,7 +3,7 @@
 
     N = 10
     name = "testname"
-    C = Chart(Cartographer.ProgressLogger(N; name))
+    C = Chart(MoreMaps.ProgressLogger(N; name))
     f = x -> (sleep(0.3); x^2)
 
     logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
@@ -19,7 +19,7 @@
     @test length(logger.logs) == N + 1
 
     N = 4 # Not divisible
-    C = Chart(Cartographer.ProgressLogger(N; name))
+    C = Chart(MoreMaps.ProgressLogger(N; name))
     logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
     y = with_logger(logger) do
         @inferred map(f, C, x)
@@ -36,7 +36,7 @@ end
     x = randn(10)
 
     N = 10
-    C = Chart(Cartographer.InfoProgress(N))
+    C = Chart(MoreMaps.InfoProgress(N))
     f = x -> (sleep(0.1); x^2)
 
     logger = TestLogger()
@@ -50,7 +50,7 @@ end
     @test length(logger.logs) == N
 
     N = 4 # Not divisible
-    C = Chart(Cartographer.InfoProgress(N))
+    C = Chart(MoreMaps.InfoProgress(N))
     logger = TestLogger()
     y = with_logger(logger) do
         map(f, C, x)
@@ -63,7 +63,7 @@ end
     x = randn(10)
     y = randn(10)
     N = 10
-    C = Chart(Cartographer.InfoProgress(N), Iterators.product)
+    C = Chart(MoreMaps.InfoProgress(N), Iterators.product)
     f = (x...) -> (sleep(0.01); +(x...))
 
     logger = TestLogger()
@@ -81,12 +81,12 @@ end
     using Term
     x = randn(10)
 
-    C = Chart(Cartographer.TermLogger())
+    C = Chart(MoreMaps.TermLogger())
     f = x -> (sleep(0.3); x^2)
     map(f, C, x)
 
     N = 10
     name = "testname"
-    C = Chart(Cartographer.TermLogger(N))
+    C = Chart(MoreMaps.TermLogger(N))
     f = x -> (sleep(0.3); x^2)
 end

@@ -1,7 +1,7 @@
 module DaggerExt
 using Distributed
-import Cartographer: Daggermap, init_log!, log_log!, close_log!, Chart, backend,
-                     preallocate, nviews
+import MoreMaps: Daggermap, init_log!, log_log!, close_log!, Chart, backend,
+                 preallocate, nviews
 using Dagger
 const DaggermapChart = Chart{L, B} where {L, B <: Daggermap}
 

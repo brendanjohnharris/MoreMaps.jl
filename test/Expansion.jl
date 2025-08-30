@@ -9,14 +9,14 @@
     f = +
     @test map(f, C, x, y) == [4 5; 5 6]
 
-    C = Chart(Cartographer.Sequential(), Float64) # Wrong leaf gives error
+    C = Chart(MoreMaps.Sequential(), Float64) # Wrong leaf gives error
     @test_throws ArgumentError map(f, C, x)
 
-    C = Chart(Cartographer.Sequential(), Integer)
+    C = Chart(MoreMaps.Sequential(), Integer)
     y = @inferred map(f, C, x)
     @test y == map(f, x)
 
-    C = Chart(Cartographer.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
+    C = Chart(MoreMaps.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
     @test_throws "return type" (@inferred map(f, C, x))
     @test map(f, C, x) == map(f, x)
 end

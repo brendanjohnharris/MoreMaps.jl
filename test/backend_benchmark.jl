@@ -1,7 +1,7 @@
 using BenchmarkTools
 using Distributed
 using Dagger
-using Cartographer
+using MoreMaps
 using CairoMakie
 
 begin # * Setup
@@ -11,7 +11,7 @@ begin # * Setup
     @everywhere using Pkg
     @everywhere Pkg.activate($proj)
     @everywhere using Distributed
-    @everywhere using Cartographer
+    @everywhere using MoreMaps
     @everywhere using Dagger
 end
 
@@ -83,10 +83,10 @@ begin # * Define a fair memory-intensive task
 end
 
 begin # * Backends
-    backends = (Cartographer.Sequential(),
-                Cartographer.Daggermap(),
-                Cartographer.Pmap(),
-                Cartographer.Threaded())
+    backends = (MoreMaps.Sequential(),
+                MoreMaps.Daggermap(),
+                MoreMaps.Pmap(),
+                MoreMaps.Threaded())
 end
 begin # * Run cpu task for varying N
     N = 1e7:1e7:1e10 .|> Int

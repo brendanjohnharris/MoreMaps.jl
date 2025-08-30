@@ -25,8 +25,8 @@ function expand(f::Function, ::Type{L},
 end
 
 # * Noop to remove method ambiguity
-function expand(f::Function, ::Type{Cartographer.All},
-                ::Union{AbstractArray{<:Cartographer.All, N},
-                        NTuple{N, <:Cartographer.All}}) where {N}
+function expand(f::Function, ::Type{MoreMaps.All},
+                ::Union{AbstractArray{<:MoreMaps.All, N},
+                        NTuple{N, <:MoreMaps.All}}) where {N}
     nothing
 end

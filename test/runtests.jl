@@ -1,4 +1,4 @@
-using Cartographer
+using MoreMaps
 using TestItems
 using TestItemRunner
 
@@ -6,7 +6,7 @@ using TestItemRunner
 
 @testsnippet Setup begin
     using Test
-    using Cartographer
+    using MoreMaps
     using Random
     using Logging
     using ProgressLogging
@@ -59,7 +59,7 @@ using TestItemRunner
 
         # Define different leaf types to test
         leaf_types = [
-            Cartographer.All,
+            MoreMaps.All,
             Union{},
             Any
         ]
@@ -169,7 +169,7 @@ using TestItemRunner
         if length(x) <= 5 && !isempty(x) && eltype(x) <: Number
             for backend in backends, logger in loggers
                 # Test cartesian product expansion
-                C_expand = Chart(Cartographer.All, backend, logger, Iterators.product)
+                C_expand = Chart(MoreMaps.All, backend, logger, Iterators.product)
 
                 # Capture logs for InfoProgress validation
                 if logger isa InfoProgress
@@ -208,7 +208,7 @@ using TestItemRunner
         end
 
         # Test type stability for specific configurations
-        for leaf_type in [Cartographer.All, eltype(x)]
+        for leaf_type in [MoreMaps.All, eltype(x)]
             C_stable = Chart(leaf_type, Sequential(), NoProgress(), NoExpansion())
 
             # Type stability test (may fail for some combinations)
@@ -237,7 +237,7 @@ using TestItemRunner
         if isempty(x)
             # Empty array tests
             for backend in backends[1:1], logger in loggers[1:1]  # Just test one combination for empty
-                C_empty = Chart(Cartographer.All, backend, logger, NoExpansion())
+                C_empty = Chart(MoreMaps.All, backend, logger, NoExpansion())
                 y_empty = map(identity, C_empty, x)
                 @test isempty(y_empty)
                 @test typeof(y_empty) == typeof(x)
@@ -246,7 +246,7 @@ using TestItemRunner
 
         # Test error handling
         if !isempty(x)
-            C_error = Chart(Cartographer.All, Sequential(), NoProgress(), NoExpansion())
+            C_error = Chart(MoreMaps.All, Sequential(), NoProgress(), NoExpansion())
 
             # Test with incompatible function (should still work or give meaningful error)
             try
@@ -262,8 +262,8 @@ using TestItemRunner
 
         # Performance test with threading (only for larger arrays)
         if length(x) > 50
-            C_threaded = Chart(Cartographer.All, Threaded(), NoProgress(), NoExpansion())
-            C_sequential = Chart(Cartographer.All, Sequential(), NoProgress(),
+            C_threaded = Chart(MoreMaps.All, Threaded(), NoProgress(), NoExpansion())
+            C_sequential = Chart(MoreMaps.All, Sequential(), NoProgress(),
                                  NoExpansion())
 
             if eltype(x) <: Number
@@ -276,7 +276,7 @@ using TestItemRunner
         # Test with different progress logging levels - WITH VALIDATION
         if length(x) > 10
             for nlogs in [1, 3, 5]
-                C_progress = Chart(Cartographer.All, Sequential(), InfoProgress(nlogs),
+                C_progress = Chart(MoreMaps.All, Sequential(), InfoProgress(nlogs),
                                    NoExpansion())
 
                 # Capture and validate progress logs
@@ -299,46 +299,46 @@ end
 
 @testitem "Aqua" begin
     using Aqua
-    Aqua.test_all(Cartographer; unbound_args = false) # unbound_args=true
+    Aqua.test_all(MoreMaps; unbound_args = false) # unbound_args=true
 end
 
 @testitem "nsimilar stability" setup=[Setup] begin
     x = randn(100)
     inleaf = Float64
     outleaf = Float32
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Float32}
 
     x = [randn(2) for _ in 1:2]
     inleaf = Vector{Float64}
     outleaf = Vector{Float32}
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Float32}}
 
     inleaf = Float64
     outleaf = Int32
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Int32}}
 
     x = [randn(2) for _ in 1:2]
     inleaf = Float64
     outleaf = Float32
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Float32}}
     outleaf = Vector{Float32}
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Vector{Float32}}}
 
     x = [[randn(2) for _ in 1:2] for _ in 1:2]
     inleaf = Float64
     outleaf = Int32
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Vector{Int32}}}
 
     x = [[randn(2) for _ in 1:2, _ in 1:2] for _ in 1:2, _ in 1:2]
     inleaf = Float64
     outleaf = Int32
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Matrix{Matrix{Vector{Int32}}}
 
     # ! It breaks at some stage
@@ -346,27 +346,27 @@ end
     inleaf = Float64
     outleaf = Int32
     VERSION < v"1.12" &&
-        @test_throws "return type" (@inferred Cartographer.nsimilar(inleaf, outleaf, x))
-    y = @test_nowarn Cartographer.nsimilar(inleaf, outleaf, x)
+        @test_throws "return type" (@inferred MoreMaps.nsimilar(inleaf, outleaf, x))
+    y = @test_nowarn MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{Vector{Vector{Int32}}}}
 
     x = [[Dict() for _ in 1:2] for _ in 1:2]
     inleaf = Dict
     outleaf = String
-    y = @inferred Cartographer.nsimilar(inleaf, outleaf, x)
+    y = @inferred MoreMaps.nsimilar(inleaf, outleaf, x)
     @test y isa Vector{Vector{String}}
 end
 
 @testitem "nviews stability" setup=[Setup] begin
     x = randn(100)
     leaf = Float64
-    idxs = @inferred Cartographer.nindices(leaf, x)
-    @inferred Cartographer.nview(x, first(idxs))
-    @test_throws "return type" (@inferred Cartographer.nviews(x, idxs))
+    idxs = @inferred MoreMaps.nindices(leaf, x)
+    @inferred MoreMaps.nview(x, first(idxs))
+    @test_throws "return type" (@inferred MoreMaps.nviews(x, idxs))
 
     x = [randn(2) for _ in 1:2]
     leaf = Float64
-    idxs = @inferred Cartographer.nindices(leaf, x)
-    @inferred Cartographer.nindex(x, first(idxs))
-    @test_throws "return type" (@inferred Cartographer.nviews(x, idxs))
+    idxs = @inferred MoreMaps.nindices(leaf, x)
+    @inferred MoreMaps.nindex(x, first(idxs))
+    @test_throws "return type" (@inferred MoreMaps.nviews(x, idxs))
 end

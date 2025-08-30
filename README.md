@@ -1,8 +1,8 @@
-# Cartographer
+# MoreMaps
 
-[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://brendanjohnharris.github.io/TimeseriesDocs.jl/dev/Cartographer/)
-[![Build Status](https://github.com/brendanjohnharris/Cartographer.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/brendanjohnharris/Cartographer.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/brendanjohnharris/Cartographer.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/brendanjohnharris/Cartographer.jl)
+[![Dev](https://img.shields.io/badge/docs-dev-blue.svg)](https://brendanjohnharris.github.io/TimeseriesDocs.jl/dev/MoreMaps/)
+[![Build Status](https://github.com/brendanjohnharris/MoreMaps.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/brendanjohnharris/MoreMaps.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/brendanjohnharris/MoreMaps.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/brendanjohnharris/MoreMaps.jl)
 
 
 A flexible mapping framework for Julia that provides different parallel backends, progress tracking, and iteration patterns.
@@ -17,7 +17,7 @@ A flexible mapping framework for Julia that provides different parallel backends
 ## Quick Start
 
 ```julia
-using Cartographer
+using MoreMaps
 
 # Basic usage with default sequential backend
 x = rand(100)
@@ -35,7 +35,7 @@ y_progress = map(sqrt, C_progress, x)
 
 ## Basics
 
-The basis of a `Cartographer` map is the `Chart` type, which configures how mapping operations are executed.
+The basis of a `MoreMaps` map is the `Chart` type, which configures how mapping operations are executed.
 
 A `Chart` has the following fields:
 - `backend`: Specifies the execution backend
@@ -48,11 +48,11 @@ A chart can be constructed using keywords or arbitrary-order positional argument
 ```julia
 C = Chart(backend=Sequential(),    # No parallel execution; similar to Base.map
           progress=NoProgress(),   # No progress logging
-          leaf=Cartographer.All,                # Map over each element of the root array, like Base.map
+          leaf=MoreMaps.All,                # Map over each element of the root array, like Base.map
           expansion=NoExpansion()) # Map over the original input arrays, as for Base.map
 
 # Or
-C = Chart(Sequential(), NoProgress(), Cartographer.All, NoExpansion()) # In any order
+C = Chart(Sequential(), NoProgress(), MoreMaps.All, NoExpansion()) # In any order
 
 # Default behavior
 C == Chart()
@@ -82,7 +82,7 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 
 ## Leaf types
 
-- `Cartographer.All`: Matches all element types; maps over each element of the root array
+- `MoreMaps.All`: Matches all element types; maps over each element of the root array
 - `Union{}`: Matches no element types; always recurses to the last non-iterable type
 - Specific types: Recurse until the first element of a given type is found
 

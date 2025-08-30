@@ -1,4 +1,4 @@
-module Cartographer
+module MoreMaps
 export Chart
 import Distributed: RemoteChannel
 import Base.Threads: Atomic, ReentrantLock, AbstractLock

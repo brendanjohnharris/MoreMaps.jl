@@ -10,7 +10,7 @@
     y = map(f, C, x, x)
     @test y == x .+ x
 
-    C = Chart(Cartographer.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
+    C = Chart(MoreMaps.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
     @test_throws "return type" (@inferred map(identity, C, x))
     @test map(identity, C, x) == x
 
@@ -24,7 +24,7 @@ end
 @testitem "DimensionalData generic" setup=[Setup] begin
     using DimensionalData
     x = DimArray(x -> rand(), X(1:10))
-    C = Chart(Threaded(), Cartographer.All, NoExpansion(), InfoProgress())
+    C = Chart(Threaded(), MoreMaps.All, NoExpansion(), InfoProgress())
     map(identity, C, x)
 
     test_generic_input(x)
