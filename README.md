@@ -70,13 +70,13 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 ## Backends
 
 - `Sequential`: Default, no parallelism
-- `Threads`: Uses Julia's threading capabilities
-- `Distributed`: Distributes work across multiple processes
+- `Threads`: Uses `Threads.jl`
+- `Distributed`: Uses `Distributed.jl` (pmap)
 - `Daggermap`: Uses `Dagger.jl`
 
 ## Progress loggers
 - `NoProgress`: No progress logging
-- `InfoProgress`: Logs progress information
+- `InfoProgress`: Logs progress information with `@info`
 - `ProgressLogger`: Uses `ProgressLogging.jl`
 - `TermLogger`: Uses `Term.jl`
 
