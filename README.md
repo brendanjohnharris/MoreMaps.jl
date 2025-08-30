@@ -85,3 +85,23 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `Cartographer.All`: Matches all element types; maps over each element of the root array
 - `Union{}`: Matches no element types; always recurses to the last non-iterable type
 - Specific types: Recurse until the first element of a given type is found
+
+
+
+# Related packages
+
+- [`ThreadsX`](https://github.com/tkf/ThreadsX.jl): Provides Base-compatible parallel APIs with deterministic results, supports generators and transducers
+- [`FLoops`](https://github.com/JuliaFolds/FLoops.jl): Flexible for-loops with threading support, cache-friendly, composable with different executors
+- [`Strided`](https://github.com/Jutho/Strided.jl): Cache-friendly multithreaded operations for strided arrays with optimized memory access patterns
+- [`LoopVectorization`](https://github.com/JuliaSIMD/LoopVectorization.jl): SIMD vectorization and multi-threading for numerical loops with near-optimal CPU utilization
+- [`Polyester`](https://github.com/JuliaSIMD/Polyester.jl).@batch: Lightweight threading with lower overhead than Threads.@threads
+- [`Dagger`](https://github.com/JuliaParallel/Dagger.jl): Dynamic task scheduling with DAG-based execution for out-of-core and distributed computing
+- [`ParallelUtilities`](https://github.com/jishnub/ParallelUtilities.jl): HPC-focused utilities for embarrassingly parallel operations with efficient work distribution
+- [`Transducers`](https://github.com/JuliaFolds/Transducers.jl): Composable algorithmic transformations with automatic parallelization support
+- [`Folds`](https://github.com/JuliaFolds/Folds.jl): High-level parallel APIs (mapreduce, sum, etc.) with multiple executor backends
+- [`SplittablesBase`](https://github.com/JuliaFolds/SplittablesBase.jl): Interface for defining splittable collections for parallel processing
+- [`ParallelProgressMeter`](https://github.com/jekyllstein/ParallelProgressMeter.jl): Multiple progress bars for parallel tasks
+- [`PmapProgressMeter`](https://github.com/slundberg/PmapProgressMeter.jl): Progress tracking specifically for pmap operations
+- [`MappedArrays`](https://github.com/JuliaArrays/MappedArrays.jl): Lazy element-wise transformations without memory allocation
+- [`FoldsThreads`](https://github.com/JuliaFolds/FoldsThreads.jl): Multiple threading executors (WorkStealingEx, DepthFirstEx, NondeterministicEx)
+
