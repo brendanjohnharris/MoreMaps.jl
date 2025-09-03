@@ -4,6 +4,11 @@
 
 Maps concurrently over elements of an array using `Threads.@threads`.
 
+
+Best for:
+- Medium to large arrays
+- Single-machine parallelism
+
 ## Usage
 
 ```jldoctest
@@ -35,6 +40,7 @@ julia> result = map(sum, C_nested, nested_data)
 
 **Note**: Results may not be in deterministic order due to parallel execution.
 Use `Sequential()` if order matters or for debugging.
+Performance depends on the number of threads available. Start Julia with `julia -t auto` or set the `JULIA_NUM_THREADS` environment variable.
 
 See also: [`Sequential`](@ref), [`Chart`](@ref), [`map`](@ref)
 """
