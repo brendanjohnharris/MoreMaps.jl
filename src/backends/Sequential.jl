@@ -4,6 +4,12 @@
 
 A backend for sequential (single-threaded) execution.
 Maps one-at-a-time over elements of an array, in order
+`Sequential` is the default `Chart` backend.
+
+Best for:
+- Small arrays
+- Operations with minimal computational cost
+- Debugging and development
 
 
 ## Usage

@@ -31,12 +31,12 @@ mutable struct ProgressLogger <: Progress # ? See extension for methods
     info::InfoProgress
     Progress::Any
 end
+export ProgressLogger
 mutable struct TermLogger <: Progress # ? See extension for methods
     nlogs::Int
     Progress::Any
 end
-struct Term <: Progress end # ? See extension for methods
-export Term
+export TermLogger
 struct NoProgress <: Progress end # ? No progress logging
 export NoProgress
 init_log!(P::NoProgress, N) = nothing
@@ -52,6 +52,69 @@ struct NoExpansion end
 abstract type AbstractChart end
 
 # * User-oriented charts
+"""
+    Chart(; leaf::Type = All, backend::Backend = Sequential(), progress::Progress = NoProgress(), expansion = NoExpansion())
+    Chart(args...)
+
+Create a configuration for mapping operations over arrays.
+`Chart` combines a computational backend, progress reporter, leaf type, and expansion strategy into a single reusable variable.
+
+## Arguments
+- `leaf::Type`: Element type to treat as leaves in nested arrays (default: `All`, treating
+  any array as flat)
+- `backend::Backend`: Computational backend to use (default: `Sequential()`)
+- `progress::Progress`: Progress reporting strategy (default: `NoProgress()`)
+- `expansion`: Function to expand inputs before mapping (default: `NoExpansion()`)
+
+Arguments can be supplied is keywords, or as arbitrary-order positionals.
+
+## Usage
+
+```jldoctest
+julia> using MoreMaps
+
+julia> C = Chart(Sequential(), NoProgress())  # Default configuration
+Chart{All, Sequential, NoProgress, NoExpansion}(Sequential(), NoProgress(), NoExpansion())
+
+julia> data = [1, 2, 3, 4, 5];
+
+julia> result = map(Base.Fix2(^, 2), C, data)
+5-element Vector{Int64}:
+  1
+  4
+  9
+ 16
+ 25
+
+julia> C = Chart(Vector{Int64}); # Specify leaf type
+
+julia> data = [collect(1:n) for n in 1:4]
+4-element Vector{Vector{Int64}}:
+ [1]
+ [1, 2]
+ [1, 2, 3]
+ [1, 2, 3, 4]
+
+julia> result = map(sum, C, data)
+4-element Vector{Int64}:
+  1
+  3
+  6
+ 10
+
+julia> C = Chart(Iterators.product); # With expansion function, f(x, y, ...)
+
+julia> x, y = 1:3, 3:4;
+
+julia> result = map((x...,)->(x...,), C, x, y) # Takes the cartesian product of the inputs
+3×2 Matrix{Tuple{Int64, Int64}}:
+ (1, 3)  (1, 4)
+ (2, 3)  (2, 4)
+ (3, 3)  (3, 4)
+```
+
+See also: [`Sequential`](@ref), [`Threaded`](@ref), [`Pmap`](@ref), [`InfoProgress`](@ref), [`map`](@ref)
+"""
 struct Chart{L <: Any,
              B <: Backend,
              P <: Union{Progress, NoProgress},

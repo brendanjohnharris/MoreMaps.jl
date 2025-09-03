@@ -4,6 +4,10 @@ using TestItemRunner
 
 @testitem "Doctest" begin
     using Documenter
+    using ProgressLogging
+    using Dagger
+    using Term
+
     doctest(MoreMaps; manual = false)
 end
 

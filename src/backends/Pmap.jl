@@ -4,6 +4,11 @@
 
 Maps concurrently over elements across multiple Julia processes using `Distributed.pmap`.
 
+Best for:
+- Very large arrays
+- Memory-intensive operations
+- Multi-machine clusters
+
 ## Usage
 
 ```jldoctest
