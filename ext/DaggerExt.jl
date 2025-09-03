@@ -55,7 +55,7 @@ The `options` keyword arguments are passed to `Dagger.@spawn`.
 
 See also: [`Sequential`](@ref), [`Threaded`](@ref), [`Pmap`](@ref), [`Chart`](@ref), [`map`](@ref)
 """
-Daggermap
+MoreMaps.Daggermap
 
 using Distributed
 import MoreMaps: Daggermap, init_log!, log_log!, close_log!, Chart, backend,
