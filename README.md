@@ -4,7 +4,6 @@
 [![Build Status](https://github.com/brendanjohnharris/MoreMaps.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/brendanjohnharris/MoreMaps.jl/actions/workflows/CI.yml?query=branch%3Amain)
 [![Coverage](https://codecov.io/gh/brendanjohnharris/MoreMaps.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/brendanjohnharris/MoreMaps.jl)
 
-
 A flexible mapping framework for Julia that provides different parallel backends, progress tracking, and iteration patterns.
 
 ## Features
@@ -38,6 +37,7 @@ y_progress = map(sqrt, C_progress, x)
 The basis of a `MoreMaps` map is the `Chart` type, which configures how mapping operations are executed.
 
 A `Chart` has the following fields:
+
 - `backend`: Specifies the execution backend
 - `progress`: Configures the progress logging behavior
 - `leaf`: Defines the element type where recursion terminates, for mapping nested arrays
@@ -75,6 +75,7 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `Daggermap`: Uses `Dagger.jl`
 
 ## Progress loggers
+
 - `NoProgress`: No progress logging
 - `InfoProgress`: Logs progress information with `@info`
 - `ProgressLogger`: Uses `ProgressLogging.jl`
@@ -85,8 +86,6 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `MoreMaps.All`: Matches all element types; maps over each element of the root array
 - `Union{}`: Matches no element types; always recurses to the last non-iterable type
 - Specific types: Recurse until the first element of a given type is found
-
-
 
 # Related packages
 
@@ -104,4 +103,3 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - [`PmapProgressMeter`](https://github.com/slundberg/PmapProgressMeter.jl): Progress tracking specifically for pmap operations
 - [`MappedArrays`](https://github.com/JuliaArrays/MappedArrays.jl): Lazy element-wise transformations without memory allocation
 - [`FoldsThreads`](https://github.com/JuliaFolds/FoldsThreads.jl): Multiple threading executors (WorkStealingEx, DepthFirstEx, NondeterministicEx)
-

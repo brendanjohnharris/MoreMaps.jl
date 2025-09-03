@@ -2,6 +2,11 @@ using MoreMaps
 using TestItems
 using TestItemRunner
 
+@testitem "Doctest" begin
+    using Documenter
+    doctest(MoreMaps; manual = false)
+end
+
 @run_package_tests
 
 @testsnippet Setup begin

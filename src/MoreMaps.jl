@@ -73,6 +73,7 @@ function Chart(; leaf::Type = All,
                expansion::E = NoExpansion()) where {B <: Backend, P <: Progress, E}
     Chart{leaf}(backend, progress, expansion)
 end
+export All
 
 function Chart(args...)
     kwargs = map(args) do arg

@@ -1,4 +1,32 @@
 export InfoProgress
+"""
+    InfoProgress(nlogs::Int = 10)
+
+A progress logger that displays progress information using `@info` messages.
+Shows periodic updates during mapping operations.
+
+## Arguments
+- `nlogs::Int`: Number of progress messages to display (default: 10)
+
+## Usage
+
+```julia-repl
+julia> using MoreMaps
+
+julia> C = Chart(InfoProgress(3))
+
+julia> data = [1, 2, 3, 4, 5, 6];
+
+julia> result = map(x -> x^2, C, data); # Will show progress messages during execution
+
+julia> result
+
+julia> # Combine with different backends
+       C_threaded = Chart(Threaded(), InfoProgress(2));
+
+julia> map(x -> x + 1, C_threaded, [1, 2, 3, 4]); # Threaded with progress
+```
+"""
 mutable struct InfoProgress <: Progress
     nlogs::Int
     current::Atomic{Int}
