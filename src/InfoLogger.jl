@@ -1,6 +1,6 @@
-export InfoProgress
+export InfoLogger
 """
-    InfoProgress(nlogs::Int = 10)
+    InfoLogger(nlogs::Int = 10)
 
 A progress logger that displays progress information using `@info` messages.
 Shows periodic updates during mapping operations.
@@ -13,35 +13,35 @@ Shows periodic updates during mapping operations.
 ```julia-repl
 julia> using MoreMaps
 
-julia> C = Chart(InfoProgress(3))
+julia> C = Chart(InfoLogger(3))
 
 julia> data = [1, 2, 3, 4, 5, 6];
 
-julia> result = map(x -> x^2, C, data); # Will show progress messages during execution
+julia> result = map(x -> (sleep(0.5); x^2), C, data); # Will show progress messages during execution
 
 julia> result
 
 julia> # Combine with different backends
-       C_threaded = Chart(Threaded(), InfoProgress(2));
+       C_threaded = Chart(Threaded(), InfoLogger(2));
 
-julia> map(x -> x + 1, C_threaded, [1, 2, 3, 4]); # Threaded with progress
+julia> map(x -> (sleep(0.5); x + 1), C_threaded, [1, 2, 3, 4]); # Threaded with progress
 ```
 """
-mutable struct InfoProgress <: Progress
+mutable struct InfoLogger <: Progress
     nlogs::Int
     current::Atomic{Int}
     total::Int
     lck::AbstractLock
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}}
-    function InfoProgress(nlogs::Int = 10,
-                          current = Atomic{Int}(0),
-                          total = 0 ÷ nlogs,
-                          lck = ReentrantLock(),
-                          channel = nothing)
+    function InfoLogger(nlogs::Int = 10,
+                        current = Atomic{Int}(0),
+                        total = 0 ÷ nlogs,
+                        lck = ReentrantLock(),
+                        channel = nothing)
         new(nlogs, current, total, lck, channel)
     end
 end
-function init_log!(P::InfoProgress, total)
+function init_log!(P::InfoLogger, total)
     P.total = total
     P.current = Atomic{Int}(0)
     P.channel = RemoteChannel(() -> Channel{Bool}(total), 1)
@@ -55,8 +55,8 @@ function init_log!(P::InfoProgress, total)
         end
     end
 end
-function log_log!(P::InfoProgress, i)
+function log_log!(P::InfoLogger, i)
     every = max(1, div(P.total, P.nlogs))
     i % every == 0 && put!(P.channel, true)
 end
-close_log!(P::InfoProgress) = put!(P.channel, false)
+close_log!(P::InfoLogger) = put!(P.channel, false)

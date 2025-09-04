@@ -1,7 +1,7 @@
 module TermExt
 using Term
 import MoreMaps
-import MoreMaps: InfoProgress, init_log!, log_log!, close_log!
+import MoreMaps: InfoLogger, init_log!, log_log!, close_log!
 import Base.Threads: Atomic, ReentrantLock
 import Distributed: RemoteChannel
 
@@ -49,7 +49,7 @@ appearance. Set `nlogs = 0` for maximum update frequency, or higher values to re
 The progress bar will be transient by default (disappears when complete).
 Once constructed, a re-used `TermLogger` will accumulate progress bars from subsequent maps.
 
-See also: [`InfoProgress`](@ref), [`ProgressLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
+See also: [`InfoLogger`](@ref), [`ProgressLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
 """
 function MoreMaps.TermLogger(N = 0, args...; kwargs...)
     MoreMaps.TermLogger(N, Term.ProgressBar(; DEFAULT_TERM_PROGRESS..., kwargs...))
