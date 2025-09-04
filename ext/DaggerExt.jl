@@ -18,7 +18,7 @@ Best for:
 julia> using MoreMaps, Dagger
 
 julia> C = Chart(Daggermap())
-Chart{All, Daggermap, NoProgress, NoExpansion}(Daggermap(Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}()), NoProgress(), NoExpansion())
+Chart{MoreMaps.All, Daggermap, NoProgress, NoExpansion}(Daggermap(Base.Pairs{Symbol, Union{}, Tuple{}, NamedTuple{(), Tuple{}}}()), NoProgress(), NoExpansion())
 
 julia> data = [1, 2, 3, 4, 5];
 

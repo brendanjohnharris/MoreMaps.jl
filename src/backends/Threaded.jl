@@ -15,7 +15,7 @@ Best for:
 julia> using MoreMaps
 
 julia> C = Chart(Threaded())
-Chart{All, Threaded, NoProgress, NoExpansion}(Threaded(), NoProgress(), NoExpansion())
+Chart{MoreMaps.All, Threaded, NoProgress, NoExpansion}(Threaded(), NoProgress(), NoExpansion())
 
 julia> data = [1, 2, 3, 4, 5];
 

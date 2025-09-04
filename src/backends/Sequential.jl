@@ -18,10 +18,10 @@ Best for:
 julia> using MoreMaps
 
 julia> C = Chart(Sequential())
-Chart{All, Sequential, NoProgress, NoExpansion}(Sequential(), NoProgress(), NoExpansion())
+Chart{MoreMaps.All, Sequential, NoProgress, NoExpansion}(Sequential(), NoProgress(), NoExpansion())
 
 julia> C = Chart() # Defaults to `Sequential`
-Chart{All, Sequential, NoProgress, NoExpansion}(Sequential(), NoProgress(), NoExpansion())
+Chart{MoreMaps.All, Sequential, NoProgress, NoExpansion}(Sequential(), NoProgress(), NoExpansion())
 
 julia> data = [1, 2, 3, 4, 5];
 
