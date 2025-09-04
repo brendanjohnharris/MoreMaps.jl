@@ -24,7 +24,7 @@ end
 @testitem "DimensionalData generic" setup=[Setup] begin
     using DimensionalData
     x = DimArray(x -> rand(), X(1:10))
-    C = Chart(Threaded(), MoreMaps.All, NoExpansion(), InfoLogger())
+    C = Chart(Threaded(), MoreMaps.All, NoExpansion(), LogLogger())
     map(identity, C, x)
 
     test_generic_input(x)

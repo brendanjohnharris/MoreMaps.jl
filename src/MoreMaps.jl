@@ -26,9 +26,9 @@ export Daggermap
 
 # * Logging backends
 abstract type Progress end
-include("InfoLogger.jl")
+include("LogLogger.jl")
 mutable struct ProgressLogger <: Progress # ? See extension for methods
-    info::InfoLogger
+    info::LogLogger
     Progress::Any
 end
 export ProgressLogger

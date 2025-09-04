@@ -3,7 +3,7 @@ module ProgressLoggingExt
 import ProgressLogging as PLG
 import ProgressLogging: @logmsg, Progress
 import MoreMaps
-import MoreMaps: InfoLogger, init_log!, log_log!, close_log!
+import MoreMaps: LogLogger, init_log!, log_log!, close_log!
 using UUIDs
 import Base.Threads: Atomic, ReentrantLock
 import Distributed: RemoteChannel
@@ -12,7 +12,7 @@ import Distributed: RemoteChannel
     ProgressLogger(nlogs::Int = 10; id = UUIDs.uuid4(), kwargs...)
 
 A progress logger that integrates with the ProgressLogging.jl ecosystem.
-Combines `InfoLogger` functionality with ProgressLogging.jl's structured progress reporting.
+Combines `LogLogger` functionality with ProgressLogging.jl's structured progress reporting.
 Useful for applications that need standardized progress reporting (e.g., Pluto.jl notebooks, IDEs).
 
 ## Arguments
@@ -26,10 +26,10 @@ Useful for applications that need standardized progress reporting (e.g., Pluto.j
 julia> using MoreMaps, ProgressLogging
 
 julia> P = ProgressLogger(5)
-ProgressLogger(InfoLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[]))
+ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[]))
 
 julia> C = Chart(P)
-Chart{All, Sequential, ProgressLogger, NoExpansion}(Sequential(), ProgressLogger(InfoLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[])), NoExpansion())
+Chart{All, Sequential, ProgressLogger, NoExpansion}(Sequential(), ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[])), NoExpansion())
 
 julia> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -59,13 +59,13 @@ Best with:
 - [TerminalLoggers.jl](https://github.com/JuliaLogging/TerminalLoggers.jl)
 
 **Note**: Requires ProgressLogging.jl to be loaded. Progress messages are emitted as structured logs
-that can be captured by compatible logging systems. Use `InfoLogger` for simple console output
+that can be captured by compatible logging systems. Use `LogLogger` for simple console output
 or `NoProgress` to disable progress reporting entirely.
 
-See also: [`InfoLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
+See also: [`LogLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
 """
 function MoreMaps.ProgressLogger(args...; id = UUIDs.uuid4(), kwargs...)
-    MoreMaps.ProgressLogger(MoreMaps.InfoLogger(args...),
+    MoreMaps.ProgressLogger(MoreMaps.LogLogger(args...),
                             PLG.Progress(id; kwargs...))
 end
 

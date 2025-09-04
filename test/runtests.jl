@@ -61,9 +61,9 @@ end
         # Define all available progress loggers
         loggers = [
             NoProgress(),
-            InfoLogger(3),
-            InfoLogger(5),
-            InfoLogger(10)
+            LogLogger(3),
+            LogLogger(5),
+            LogLogger(10)
         ]
 
         # Define different leaf types to test
@@ -93,8 +93,8 @@ end
             # Test 1: Basic identity mapping
             C = Chart(leaf_type, backend, logger, NoExpansion())
 
-            # Capture logs for InfoLogger validation
-            logs = if logger isa InfoLogger
+            # Capture logs for LogLogger validation
+            logs = if logger isa LogLogger
                 logger = TestLogger()
                 with_logger(logger) do
                     try
@@ -137,7 +137,7 @@ end
                     validate_progress_logs(logger.logs, length(x))
                 end
             else
-                # Non-InfoLogger loggers - run tests normally
+                # Non-LogLogger loggers - run tests normally
                 try
                     y1 = map(identity, C, x)
                     @test y1 == x
@@ -180,8 +180,8 @@ end
                 # Test cartesian product expansion
                 C_expand = Chart(MoreMaps.All, backend, logger, Iterators.product)
 
-                # Capture logs for InfoLogger validation
-                if logger isa InfoLogger
+                # Capture logs for LogLogger validation
+                if logger isa LogLogger
                     logger = TestLogger()
                     with_logger(logger) do
                         try
@@ -285,7 +285,7 @@ end
         # Test with different progress logging levels - WITH VALIDATION
         if length(x) > 10
             for nlogs in [1, 3, 5]
-                C_progress = Chart(MoreMaps.All, Sequential(), InfoLogger(nlogs),
+                C_progress = Chart(MoreMaps.All, Sequential(), LogLogger(nlogs),
                                    NoExpansion())
 
                 # Capture and validate progress logs
