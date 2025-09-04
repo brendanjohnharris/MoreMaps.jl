@@ -38,7 +38,7 @@ Base.@kwdef mutable struct LogLogger <: Progress
     total::Int = 0 ÷ nlogs
     lck::AbstractLock = ReentrantLock()
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}} = nothing
-    function LogLogger(nlogs::Int = 10,
+    function LogLogger(nlogs::Int,
                        level::LogLevel = Info,
                        current = Atomic{Int}(0),
                        total = 0 ÷ nlogs,

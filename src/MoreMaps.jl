@@ -37,7 +37,13 @@ mutable struct TermLogger <: Progress # ? See extension for methods
     Progress::Any
 end
 export TermLogger
-struct NoProgress <: Progress end # ? No progress logging
+
+"""
+    NoProgress()
+
+The default progress logger that performs no logging.
+"""
+struct NoProgress <: Progress end
 export NoProgress
 init_log!(P::NoProgress, N) = nothing
 log_log!(P::NoProgress, i) = nothing
