@@ -5,6 +5,7 @@ version = "0.2.0"
 
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
 [weakdeps]
 Dagger = "d58978e5-989f-55fb-8d15-ea34adc7bf54"
@@ -20,6 +21,7 @@ TermExt = ["Term"]
 [compat]
 Dagger = "0.19"
 Distributed = "1.10"
+Logging = "1.10"
 ProgressLogging = "0.1"
 Term = "2"
 UUIDs = "1.10"

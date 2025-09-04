@@ -57,6 +57,21 @@ end
     end
     @test y == map(f, x)
     @test length(logger.logs) ≥ N
+
+    # * Different log level
+    N = 10
+    C = Chart(MoreMaps.LogLogger(N, Warn))
+    f = x -> (sleep(0.1); x^2)
+
+    logger = TestLogger()
+    y = with_logger(logger) do
+        map(f, C, x)
+    end
+    @test y == map(f, x)
+    @test map(logger.logs) do l
+        occursin("Progress: ", string(l)) && l.level == Warn
+    end |> all
+    @test length(logger.logs) == N
 end
 
 @testitem "Expansion progress" setup=[Setup] begin
