@@ -15,7 +15,7 @@ Best for:
 julia> using MoreMaps # @everywhere
 
 julia> C = Chart(Pmap())
-Chart{All, Pmap, NoProgress, NoExpansion}(Pmap(), NoProgress(), NoExpansion())
+Chart{MoreMaps.All, Pmap, NoProgress, NoExpansion}(Pmap(), NoProgress(), NoExpansion())
 
 julia> data = [1, 2, 3, 4, 5];
 

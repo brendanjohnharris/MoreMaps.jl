@@ -29,7 +29,7 @@ julia> P = ProgressLogger(5)
 ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[]))
 
 julia> C = Chart(P)
-Chart{All, Sequential, ProgressLogger, NoExpansion}(Sequential(), ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[])), NoExpansion())
+Chart{MoreMaps.All, Sequential, ProgressLogger, NoExpansion}(Sequential(), ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[])), NoExpansion())
 
 julia> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
