@@ -30,92 +30,73 @@ end
     @test map(f, C, x) == map(f, x)
 end
 
-# @testitem "Distributed" setup=[Setup] begin
-#     using Distributed
+@testitem "Distributed" setup=[Setup] begin
+    using Distributed
 
-#     try
-#         x = randn(10)
-#         C = Chart(MoreMaps.Pmap())
-#         f = Base.Fix1(^, 2)
-#         @inferred map(f, C, x) # Regular map.
-#         @test map(f, C, x) == map(f, x)
+    try
+        x = randn(10)
+        C = Chart(MoreMaps.Pmap())
+        f = Base.Fix1(^, 2)
+        @inferred map(f, C, x) # Regular map.
+        @test map(f, C, x) == map(f, x)
 
-#         C = Chart(MoreMaps.Pmap(), Float64)
-#         y = @inferred map(f, C, x)
-#         @test y == map(f, x)
+        C = Chart(MoreMaps.Pmap(), Float64)
+        y = @inferred map(f, C, x)
+        @test y == map(f, x)
 
-#         C = Chart(MoreMaps.Pmap(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
-#         @test_throws "return type" (@inferred map(f, C, x))
-#         @test map(f, C, x) == map(f, x)
+        C = Chart(MoreMaps.Pmap(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
+        @test_throws "return type" (@inferred map(f, C, x))
+        @test map(f, C, x) == map(f, x)
+    catch e
+        rethrow(e)
+    finally
+        rmprocs()
+    end
+end
 
-#         # * With workers
-#         addprocs(3)
-#         @everywhere using MoreMaps
-#         x = randn(100)
-#         C = Chart(MoreMaps.Pmap(), LogLogger(10))
-#         @everywhere g(x) = (sleep(0.01); x^2) # g must be defined on the workers
-#         @inferred map(g, C, x)
-#         @test map(g, C, x) == map(g, x)
+@testitem "Daggermap" setup=[Setup] begin
+    using Distributed
+    using MoreMaps
+    using Dagger
 
-#         c = Chart(Sequential())
-#         tc = @timed map(g, c, x)
-#         C = Chart(MoreMaps.Pmap())
-#         tC = @timed map(g, C, x)
-#         if Threads.nthreads() > 3
-#             @test tC.time < tc.time / 2
-#         end
-#     catch e
-#         rmprocs()
-#         rethrow(e)
-#     end
-# end
+    try
+        x = randn(10)
+        C = Chart(MoreMaps.Daggermap())
+        f = Base.Fix1(^, 2)
+        @inferred map(f, C, x) # Regular map.
+        @test map(f, C, x) == map(f, x)
 
-# @testitem "Daggermap" setup=[Setup] begin
-#     using Distributed
-#     using MoreMaps
+        C = Chart(MoreMaps.Daggermap(), Float64)
+        y = @inferred map(f, C, x)
+        @test y == map(f, x)
 
-#     try
-#         addprocs(3)
-#         @everywhere using Dagger
+        C = Chart(MoreMaps.Daggermap(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
+        @test_throws "return type" (@inferred map(f, C, x))
+        @test map(f, C, x) == map(f, x)
 
-#         x = randn(10)
-#         C = Chart(MoreMaps.Daggermap())
-#         f = Base.Fix1(^, 2)
-#         @inferred map(f, C, x) # Regular map.
-#         @test map(f, C, x) == map(f, x)
+        function cpu_intensive_task(n)
+            result = 0.0
+            for i in 1:n
+                result += sin(i) * cos(i) * sqrt(i)
+            end
+            return (result = result, worker_id = Distributed.myid())
+        end
 
-#         C = Chart(MoreMaps.Daggermap(), Float64)
-#         y = @inferred map(f, C, x)
-#         @test y == map(f, x)
+        x = 1:1000:1000000
+        C = Chart(MoreMaps.Daggermap(), LogLogger(10))
+        @inferred map(cpu_intensive_task, C, x)
+        @test map(cpu_intensive_task, C, x) == map(cpu_intensive_task, x)
 
-#         C = Chart(MoreMaps.Daggermap(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
-#         @test_throws "return type" (@inferred map(f, C, x))
-#         @test map(f, C, x) == map(f, x)
-
-#         @everywhere begin
-#             function cpu_intensive_task(n)
-#                 result = 0.0
-#                 for i in 1:n
-#                     result += sin(i) * cos(i) * sqrt(i)
-#                 end
-#                 return (result = result, worker_id = Distributed.myid())
-#             end
-#         end
-
-#         x = 1:1000:1000000
-#         C = Chart(MoreMaps.Daggermap(), LogLogger(10))
-#         @inferred map(cpu_intensive_task, C, x)
-#         @test map(cpu_intensive_task, C, x) == map(cpu_intensive_task, x)
-
-#         c = Chart(Sequential())
-#         tc = @timed map(cpu_intensive_task, c, x)
-#         C = Chart(MoreMaps.Daggermap())
-#         tC = @timed map(cpu_intensive_task, C, x)
-#         if Threads.nthreads() > 3
-#             @test tC.time < tc.time / 2
-#         end
-#     catch e
-#         rmprocs()
-#         rethrow(e)
-#     end
-# end
+        c = Chart(Sequential())
+        tc = @timed map(cpu_intensive_task, c, x)
+        C = Chart(MoreMaps.Daggermap())
+        tC = @timed map(cpu_intensive_task, C, x)
+        if Threads.nthreads() > 3
+            @test tC.time < tc.time / 2
+        end
+    catch e
+        rethrow(e)
+    finally
+        rmprocs()
+    end
+end
