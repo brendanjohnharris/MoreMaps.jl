@@ -1,6 +1,9 @@
+using Logging
+
 export LogLogger
 """
-    LogLogger(nlogs::Int = 10)
+    LogLogger(; nlogs::Int = 10, level::LogLevel=Info)
+    LogLogger(nlogs::Int = 10, level::LogLevel=Info)
 
 A progress logger that displays progress information using `@info` messages.
 Shows periodic updates during mapping operations.
@@ -21,26 +24,27 @@ julia> result = map(x -> (sleep(0.5); x^2), C, data); # Will show progress messa
 
 julia> result
 
-julia> # Combine with different backends
-       C_threaded = Chart(Threaded(), LogLogger(2));
+julia> using Logging # Choose a log level
 
-julia> map(x -> (sleep(0.5); x + 1), C_threaded, [1, 2, 3, 4]); # Threaded with progress
+julia> C = Chart(LogLogger(4, Warn));
+
+julia> map(x -> (sleep(0.5); x + 1), C, [1, 2, 3, 4]);
 ```
 """
-mutable struct LogLogger <: Progress
-    nlogs::Int
-    current::Atomic{Int}
-    total::Int
-    lck::AbstractLock
-    channel::Union{Nothing, RemoteChannel{Channel{Bool}}}
-    level::LogLevel
+Base.@kwdef mutable struct LogLogger <: Progress
+    nlogs::Int = 10
+    level::LogLevel = Info
+    current::Atomic{Int} = Atomic{Int}(0)
+    total::Int = 0 ÷ nlogs
+    lck::AbstractLock = ReentrantLock()
+    channel::Union{Nothing, RemoteChannel{Channel{Bool}}} = nothing
     function LogLogger(nlogs::Int = 10,
+                       level::LogLevel = Info,
                        current = Atomic{Int}(0),
                        total = 0 ÷ nlogs,
                        lck = ReentrantLock(),
-                       channel = nothing,
-                       level = Info)
-        new(nlogs, current, total, lck, channel, level)
+                       channel = nothing)
+        new(nlogs, level, current, total, lck, channel)
     end
 end
 function init_log!(P::LogLogger, total)
