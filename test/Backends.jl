@@ -52,7 +52,7 @@ end
 #         addprocs(3)
 #         @everywhere using MoreMaps
 #         x = randn(100)
-#         C = Chart(MoreMaps.Pmap(), InfoProgress(10))
+#         C = Chart(MoreMaps.Pmap(), InfoLogger(10))
 #         @everywhere g(x) = (sleep(0.01); x^2) # g must be defined on the workers
 #         @inferred map(g, C, x)
 #         @test map(g, C, x) == map(g, x)
@@ -103,7 +103,7 @@ end
 #         end
 
 #         x = 1:1000:1000000
-#         C = Chart(MoreMaps.Daggermap(), InfoProgress(10))
+#         C = Chart(MoreMaps.Daggermap(), InfoLogger(10))
 #         @inferred map(cpu_intensive_task, C, x)
 #         @test map(cpu_intensive_task, C, x) == map(cpu_intensive_task, x)
 

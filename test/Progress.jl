@@ -32,11 +32,11 @@
     @test y == map(f, x)
     @test length(logger.logs) ≥ N + 1
 end
-@testitem "InfoProgress" setup=[Setup] begin
+@testitem "InfoLogger" setup=[Setup] begin
     x = randn(10)
 
     N = 10
-    C = Chart(MoreMaps.InfoProgress(N))
+    C = Chart(MoreMaps.InfoLogger(N))
     f = x -> (sleep(0.1); x^2)
 
     logger = TestLogger()
@@ -50,7 +50,7 @@ end
     @test length(logger.logs) == N
 
     N = 4 # Not divisible
-    C = Chart(MoreMaps.InfoProgress(N))
+    C = Chart(MoreMaps.InfoLogger(N))
     logger = TestLogger()
     y = with_logger(logger) do
         map(f, C, x)
@@ -63,7 +63,7 @@ end
     x = randn(10)
     y = randn(10)
     N = 10
-    C = Chart(MoreMaps.InfoProgress(N), Iterators.product)
+    C = Chart(MoreMaps.InfoLogger(N), Iterators.product)
     f = (x...) -> (sleep(0.01); +(x...))
 
     logger = TestLogger()

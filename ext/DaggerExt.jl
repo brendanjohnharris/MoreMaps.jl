@@ -1,10 +1,5 @@
 module DaggerExt
 
-using Distributed
-import MoreMaps: Daggermap, init_log!, log_log!, close_log!, Chart, backend,
-                 preallocate, nviews
-using Dagger
-
 """
     Daggermap(; kwargs...)
 
@@ -62,6 +57,10 @@ See also: [`Sequential`](@ref), [`Threaded`](@ref), [`Pmap`](@ref), [`Chart`](@r
 """
 Daggermap
 
+using Distributed
+import MoreMaps: Daggermap, init_log!, log_log!, close_log!, Chart, backend,
+                 preallocate, nviews
+using Dagger
 const DaggermapChart = Chart{L, B} where {L, B <: Daggermap}
 
 function Base.map(f, C::DaggermapChart, itrs...)

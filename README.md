@@ -29,7 +29,7 @@ C_threaded = Chart(Threaded())
 y_threaded = map(sqrt, C_threaded, x)
 
 # Add progress tracking
-C_progress = Chart(Threaded(), InfoProgress(10))
+C_progress = Chart(Threaded(), InfoLogger(10))
 y_progress = map(sqrt, C_progress, x)
 ```
 
@@ -78,7 +78,7 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 ## Progress loggers
 
 - `NoProgress`: No progress logging
-- `InfoProgress`: Logs progress information with `@info`
+- `InfoLogger`: Logs progress information with `@info`
 - `ProgressLogger`: Uses `ProgressLogging.jl`
 - `TermLogger`: Uses `Term.jl`
 
