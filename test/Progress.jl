@@ -10,13 +10,15 @@
     y = with_logger(logger) do
         @inferred map(f, C, x)
     end
-    @test y == map(f, x)
+    @test sum(map(x -> x.message.done, logger.logs)) == 1
     map(logger.logs) do l
         @test l.level == ProgressLogging.ProgressLevel
-        @test l.message ∈ [name, "done"]
-        @test l.id == C.progress.Progress.id
+        @test l.message isa ProgressLogging.Progress
+        @test l.message.name == name
+        @test l.message.id == C.progress.Progress.id
     end
     @test length(logger.logs) == N + 1
+    @test y == map(f, x)
 
     N = 4 # Not divisible
     C = Chart(MoreMaps.ProgressLogger(N; name))
@@ -26,8 +28,9 @@
     end
     map(logger.logs) do l
         @test l.level == ProgressLogging.ProgressLevel
-        @test l.message ∈ [name, "done"]
-        @test l.id == C.progress.Progress.id
+        @test l.message isa ProgressLogging.Progress
+        @test l.message.name == name
+        @test l.message.id == C.progress.Progress.id
     end
     @test y == map(f, x)
     @test length(logger.logs) ≥ N + 1

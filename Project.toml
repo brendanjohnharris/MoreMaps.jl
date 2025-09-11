@@ -1,7 +1,7 @@
 name = "MoreMaps"
 uuid = "d6ea422f-1f55-4be1-bfc3-e7c09aa4d855"
 authors = ["brendanjohnharris <bhar9988@uni.sydney.edu.au> and contributors"]
-version = "0.2.0"
+version = "0.2.1"
 
 [deps]
 Distributed = "8ba89e20-285c-5b6f-9357-94700520ee1b"
