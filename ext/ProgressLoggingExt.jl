@@ -75,6 +75,9 @@ function init_log!(P::MoreMaps.ProgressLogger, total)
     P.info.channel = RemoteChannel(() -> Channel{Bool}(total), 1)
     P.info.lck = ReentrantLock()
 
+    # * Start progress
+    @logmsg PLG.ProgressLevel Progress(P.Progress.id, 0.0; name = P.Progress.name)
+
     every = max(1, div(P.info.total, P.info.nlogs))
     @async while take!(P.info.channel)
         Threads.lock(P.info.lck) do
@@ -93,3 +96,7 @@ function close_log!(P::MoreMaps.ProgressLogger)
 end
 
 end
+
+
+
+

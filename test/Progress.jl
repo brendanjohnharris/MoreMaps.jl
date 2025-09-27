@@ -109,3 +109,5 @@ end
     C = Chart(MoreMaps.TermLogger(N))
     f = x -> (sleep(0.3); x^2)
 end
+
+

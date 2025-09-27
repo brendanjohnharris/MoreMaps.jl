@@ -108,10 +108,6 @@ init_log!(C::Chart, N) = init_log!(progress(C), N) # * Specialized when defining
 log_log!(C::Chart, i) = log_log!(progress(C), i)
 close_log!(C::Chart) = close_log!(progress(C))
 
-function Base.map(f, c::C, args...; kwargs...) where {C <: AbstractChart}
-    throw(ArgumentError("No map method defined for Chart type $C"))
-end
-
 # * Traversal methods
 function nindex(arr, idxs::Tuple)
     if isempty(idxs)
@@ -261,6 +257,29 @@ function preallocate(C, f, itrs)
     out = nsimilar(leaf(C), T, first(itrs))
 
     return out, idxs, xs
+end
+
+function _map(f, c::C, args...; kwargs...) where {C <: AbstractChart}
+    throw(ArgumentError("No map method defined for Chart type $C"))
+end
+
+function Base.map(f, c::C, itrs...) where {C <: AbstractChart}
+    _map(f, c, itrs...)
+end
+
+function Base.map(f, c::C, tps::Vararg{Tuple}) where {C <: AbstractChart}
+    itrs = map(collect, tps)
+    map(f, c, itrs...) |> Tuple
+end
+
+function Base.map(f, c::C, nt::NamedTuple{names},
+                  nts::NamedTuple...) where {names, C <: AbstractChart}
+    if !Base.same_names(nt, nts...)
+        throw(ArgumentError("Named tuple names do not match."))
+    end
+    itr = values(nt)
+    itrs = map(values, nts)
+    map(f, c, itr, itrs...) |> NamedTuple{names}
 end
 
 # * Component methods
