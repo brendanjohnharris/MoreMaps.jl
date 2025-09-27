@@ -47,7 +47,7 @@ See also: [`Sequential`](@ref), [`Chart`](@ref), [`map`](@ref)
 Threaded
 export Threaded
 const ThreadedChart = Chart{L, B} where {L, B <: Threaded}
-function Base.map(f, C::ThreadedChart, itrs...)
+function MoreMaps._map(f, C::ThreadedChart, itrs...)
     # * Get preallocated array, with indices, and a data view
     out, idxs, xs = preallocate(C, f, itrs)
 

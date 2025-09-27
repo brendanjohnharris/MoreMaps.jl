@@ -45,7 +45,7 @@ Pmap
 import Distributed: pmap
 export Pmap
 const PmapChart = Chart{L, B} where {L, B <: Pmap}
-function Base.map(f, C::PmapChart, itrs...)
+function MoreMaps._map(f, C::PmapChart, itrs...)
     # * Get preallocated array, with indices, and a data view
     out, idxs, xs = preallocate(C, f, itrs)
 

@@ -51,7 +51,8 @@ Sequential
 
 export Sequential
 const SequentialChart = Chart{L, B, P, E} where {L, B <: Sequential, P, E}
-function Base.map(f, C::SequentialChart, itrs...)
+
+function MoreMaps._map(f, C::SequentialChart, itrs...)
     # * Get preallocated array, with indices, and a data view
     out, idxs, xs = preallocate(C, f, itrs)
     # * Initialize logger

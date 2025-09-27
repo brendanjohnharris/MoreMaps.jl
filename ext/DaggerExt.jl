@@ -65,7 +65,7 @@ MoreMaps.Daggermap
 
 const DaggermapChart = Chart{L, B} where {L, B <: Daggermap}
 
-function Base.map(f, C::DaggermapChart, itrs...)
+function MoreMaps._map(f, C::DaggermapChart, itrs...)
     options = backend(C).options
     # * Get preallocated array, with indices, and a data view
     out, idxs, xs = preallocate(C, f, itrs)

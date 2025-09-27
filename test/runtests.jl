@@ -379,3 +379,5 @@ end
     @inferred MoreMaps.nindex(x, first(idxs))
     @test_throws "return type" (@inferred MoreMaps.nviews(x, idxs))
 end
+
+
