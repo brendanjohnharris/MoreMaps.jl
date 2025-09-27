@@ -267,9 +267,11 @@ function Base.map(f, c::C, itrs...) where {C <: AbstractChart}
     _map(f, c, itrs...)
 end
 
-function Base.map(f, c::C, tps::Vararg{Tuple}) where {C <: AbstractChart}
+function Base.map(f, c::C, tp::Tuple{Vararg{Any, N}}, tps...) where {N, C <: AbstractChart}
+    itr = collect(tp)
     itrs = map(collect, tps)
-    map(f, c, itrs...) |> Tuple
+    out = map(f, c, itr, itrs...)
+    return NTuple{N, eltype(out)}(out)
 end
 
 function Base.map(f, c::C, nt::NamedTuple{names},

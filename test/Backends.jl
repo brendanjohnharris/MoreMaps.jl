@@ -106,7 +106,7 @@ end
     y = (4, 5, 6)
 
     _z = map(+, x, y)
-    z = map(+, Chart(), x, y)
+    z = @inferred map(+, Chart(), x, y)
     @test z == _z
 end
 @testitem "NamedTuples" setup=[Setup] begin
@@ -114,6 +114,6 @@ end
     y = (; a = 4, b = 5, c = 6)
 
     _z = map(+, x, y)
-    z = map(+, Chart(), x, y)
+    z = @inferred map(+, Chart(), x, y)
     @test z == _z
 end
