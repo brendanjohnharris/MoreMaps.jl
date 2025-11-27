@@ -19,6 +19,15 @@
     @test_throws "return type" (@inferred map(tuple, C, X(1:10), Y(1:10)))
     y = map(tuple, C, X(1:10), Y(1:10))
     @test y == Iterators.product(1:10, 1:10) |> collect
+
+    x = X(1:10)
+    @test_throws MethodError map(sqrt, Chart(), x) # Need to use Iterators.product on dims
+
+    C = Chart(Iterators.product)
+    y = map(sqrt, C, x)
+    @test y == sqrt.(x)
+
+    @test_throws MethodError map(+, Chart(), x, x)
 end
 
 @testitem "DimensionalData generic" setup=[Setup] begin
