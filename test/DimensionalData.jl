@@ -28,6 +28,9 @@
     @test y == sqrt.(x)
 
     @test_throws MethodError map(+, Chart(), x, x)
+
+    z = map(tuple, Chart(), 1:10)
+    @test map(tuple, Chart(), X(1:10)) == DimArray(z, X(1:10))
 end
 
 @testitem "DimensionalData generic" setup=[Setup] begin
