@@ -21,13 +21,17 @@
     @test y == Iterators.product(1:10, 1:10) |> collect
 
     x = X(1:10)
-    @test_throws MethodError map(sqrt, Chart(), x) # Need to use Iterators.product on dims
+    z = map(sqrt, Chart(), x)
+    @test collect(z) == map(sqrt, x)  # Need to use Iterators.product on dims
+    @test only(dims(z)) == x
 
     C = Chart(Iterators.product)
     y = map(sqrt, C, x)
     @test y == sqrt.(x)
 
-    @test_throws MethodError map(+, Chart(), x, x)
+    z =  map(+, Chart(), x, x)
+    @test z == x .+ x
+    @test only(dims(z)) == x
 
     z = map(tuple, Chart(), 1:10)
     @test map(tuple, Chart(), X(1:10)) == DimArray(z, X(1:10))

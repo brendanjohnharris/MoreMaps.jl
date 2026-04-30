@@ -23,6 +23,7 @@ DimensionalDataExt = ["DimensionalData"]
 [compat]
 Dagger = "0.19"
 Distributed = "1.10"
+DimensionalData = "0.26 - 0.30"
 Logging = "1.10"
 ProgressLogging = "0.1"
 Term = "2"
