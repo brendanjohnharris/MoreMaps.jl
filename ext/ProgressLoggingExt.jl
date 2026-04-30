@@ -72,7 +72,7 @@ end
 function init_log!(P::MoreMaps.ProgressLogger, total)
     P.info.total = total
     P.info.current = Atomic{Int}(0)
-    P.info.channel = RemoteChannel(() -> Channel{Bool}(total), 1)
+    P.info.channel = RemoteChannel(() -> Channel{Bool}(P.info.nlogs + 1), 1)
     P.info.lck = ReentrantLock()
 
     # * Start progress

@@ -50,7 +50,7 @@ end
 function init_log!(P::LogLogger, total)
     P.total = total
     P.current = Atomic{Int}(0)
-    P.channel = RemoteChannel(() -> Channel{Bool}(total), 1)
+    P.channel = RemoteChannel(() -> Channel{Bool}(P.nlogs + 1), 1)
     P.lck = ReentrantLock()
 
     every = max(1, div(P.total, P.nlogs))
