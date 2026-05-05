@@ -88,7 +88,7 @@ function init_log!(P::MoreMaps.ProgressLogger, total)
         end
     end
 end
-log_log!(P::MoreMaps.ProgressLogger, i) = log_log!(P.info, i)
+log_log!(P::MoreMaps.ProgressLogger, args...) = log_log!(P.info, args...)
 
 function close_log!(P::MoreMaps.ProgressLogger)
     close_log!(P.info)
@@ -96,7 +96,3 @@ function close_log!(P::MoreMaps.ProgressLogger)
 end
 
 end
-
-
-
-

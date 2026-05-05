@@ -27,6 +27,7 @@ export Daggermap
 # * Logging backends
 abstract type Progress end
 include("LogLogger.jl")
+include("QualityLogger.jl")
 mutable struct ProgressLogger <: Progress # ? See extension for methods
     info::LogLogger
     Progress::Any
@@ -48,6 +49,7 @@ export NoProgress
 init_log!(P::NoProgress, N) = nothing
 log_log!(P::NoProgress, i) = nothing
 close_log!(P::NoProgress) = nothing
+log_log!(P::Progress, i, y) = log_log!(P, i) # Compatibility
 
 # * So for ramap we want to flatten the iterator
 
@@ -105,7 +107,7 @@ expansion(C::Chart) = C.expansion
 hasexpansion(C::Chart{B, P, L, E}) where {B, P, L, E} = !(E <: NoExpansion)
 
 init_log!(C::Chart, N) = init_log!(progress(C), N) # * Specialized when defining a logger type
-log_log!(C::Chart, i) = log_log!(progress(C), i)
+log_log!(C::Chart, args...) = log_log!(progress(C), args...)
 close_log!(C::Chart) = close_log!(progress(C))
 
 # * Traversal methods

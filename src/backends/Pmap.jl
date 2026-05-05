@@ -53,7 +53,7 @@ function MoreMaps._map(f, C::PmapChart, itrs...)
     init_log!(C, length(idxs))
     function g(i, x...)
         y = f(map(getindex, x)...)
-        log_log!(C, i)
+        log_log!(C, i, y)
         return y
     end
 

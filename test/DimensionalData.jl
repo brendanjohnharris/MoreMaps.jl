@@ -29,7 +29,7 @@
     y = map(sqrt, C, x)
     @test y == sqrt.(x)
 
-    z =  map(+, Chart(), x, x)
+    z = map(+, Chart(), x, x)
     @test z == x .+ x
     @test only(dims(z)) == x
 

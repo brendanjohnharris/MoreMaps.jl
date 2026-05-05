@@ -110,4 +110,24 @@ end
     f = x -> (sleep(0.3); x^2)
 end
 
+@testitem "QualityLogger" setup=[Setup] begin
+    x = [-2.0, -1.0, 0.0, 1.0, 2.0]
+    y = map(v -> sqrt(complex(v)), x)
+
+    io = IOBuffer()
+    q = MoreMaps.QualityLogger(; io = io, width = 3, quality = z -> imag(z) == 0)
+    C = Chart(q)
+
+    out = map(v -> sqrt(complex(v)), C, x)
+
+    @test out == y
+    @test q.done == length(x)
+    @test q.failed == 2
+    @test q.passed == 3
+
+    printed = String(take!(io))
+    @test occursin("summary", printed)
+    @test occursin("fail=2", printed)
+end
+
 
