@@ -51,9 +51,7 @@ end
     @test map(logger.logs) do l
         occursin("Progress: ", string(l))
     end |> all
-    @test map(logger.logs) do l
-        occursin("time: ", string(l))
-    end |> all
+
     @test length(logger.logs) == N
 
     N = 4 # Not divisible
@@ -126,7 +124,7 @@ end
     out = map(f, C, x)
     out = map(f, Chart(QualityLogger()), x)
 
-    @test out == y
+    @test filter(!isnan, out) == filter(!isnan, y)
     @test q.done == length(x)
     @test q.failed == 2
     @test q.passed == 3

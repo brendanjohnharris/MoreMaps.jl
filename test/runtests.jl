@@ -25,26 +25,22 @@ end
     function validate_progress_logs(logs, expected_total)
         for log in logs
             if log.level == Logging.Info && occursin("Progress:", string(log.message))
-                # Parse progress message like "Progress: 20 / 50"
+                # Parse progress messages like "Progress: 20 / 50" or
+                # "Progress: 20 / 50 (3s / 8s)".
                 msg = string(log.message)
-                if occursin("/", msg)
-                    parts = split(msg, "/")
-                    if length(parts) >= 2
-                        try
-                            current_str = strip(split(parts[1], ":")[end])
-                            total_str = strip(parts[2])
+                m = match(r"Progress:\s*(\d+)\s*/\s*(\d+)", msg)
+                if m !== nothing
+                    try
+                        current = parse(Int, m.captures[1])
+                        total = parse(Int, m.captures[2])
 
-                            current = parse(Int, current_str)
-                            total = parse(Int, total_str)
+                        # Validate that current <= total
+                        @test current <= total
 
-                            # Validate that current <= total
-                            @test current <= total
-
-                            # Also validate that total matches expected
-                            @test total == expected_total
-                        catch e
-                            @warn "Could not parse progress message: $msg" exception=e
-                        end
+                        # Also validate that total matches expected
+                        @test total == expected_total
+                    catch e
+                        @warn "Could not parse progress message: $msg" exception=e
                     end
                 end
             end
