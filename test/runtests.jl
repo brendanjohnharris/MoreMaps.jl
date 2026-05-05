@@ -380,4 +380,7 @@ end
     @test_throws "return type" (@inferred MoreMaps.nviews(x, idxs))
 end
 
-
+@testitem "Asciicast" setup=[Setup] begin
+    using Asciicast
+    cast_readme(MoreMaps)
+end

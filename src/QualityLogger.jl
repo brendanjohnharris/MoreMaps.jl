@@ -43,7 +43,7 @@ function _fmt_human_time(seconds::Real)
 end
 
 """
-    QualityLogger(; nlogs = 10, width = 0, status_width = 20, quality = _default_quality, io = stdout)
+    QualityLogger(; nlogs = 0, width = 0, status_width = 20, quality = _default_quality, io = stdout)
 
 Terminal logger that prints rows of colored blocks.
 
@@ -76,10 +76,18 @@ end
 
 _ql_every(P::QualityLogger) = P.nlogs == 0 ? 1 : max(1, div(max(P.total, 1), P.nlogs))
 
-function _ql_flush_pending!(P::QualityLogger)
+function _ql_active_io(P::QualityLogger)
+    try
+        return isopen(P.io) ? P.io : stdout
+    catch
+        return stdout
+    end
+end
+
+function _ql_flush_pending!(P::QualityLogger, io::IO)
     chunk = String(take!(P.pending))
     isempty(chunk) && return
-    print(P.io, chunk)
+    print(io, chunk)
 end
 
 function _ql_print_prefix!(io::IO, P::QualityLogger)
@@ -108,50 +116,60 @@ function _ql_print_prefix!(io::IO, P::QualityLogger)
     end
 end
 
-function _print_prefix(P::QualityLogger)
-    _ql_print_prefix!(P.io, P)
-end
+function _ql_print_block_bracket!(io::IO, P::QualityLogger)
+    w = max(P.block_width, 1)
+    bracket = "┌" * repeat("─", w) * "┐"
+    left_pad = max(P.status_width - 1, 0)
 
-function init_log!(P::QualityLogger, total)
-    P.total = total
-    P.done = 0
-    P.passed = 0
-    P.failed = 0
-    P.row_index = 1
-    P.row_pos = 0
-    P.block_width = P.width > 0 ? P.width : max(floor(Int, sqrt(max(total, 1))), 50)
-    P.started_at = time()
-    P.pending = IOBuffer()
-    P.lck = ReentrantLock()
-
-    Threads.lock(P.lck) do
-        _print_prefix(P)
-        flush(P.io)
+    if P.use_color
+        print(io, _QL_DIM, repeat(" ", left_pad), bracket, _QL_RESET, '\n')
+    else
+        print(io, repeat(" ", left_pad), bracket, '\n')
     end
 end
 
-function init_log!(P::QualityLogger, total, C)
+function _ql_print_block_bracket_bottom!(io::IO, P::QualityLogger)
+    w = max(P.block_width, 1)
+    bracket = "└" * repeat("─", w) * "┘"
+    left_pad = max(P.status_width - 1, 0)
+
+    if P.use_color
+        print(io, _QL_DIM, repeat(" ", left_pad), bracket, _QL_RESET, '\n')
+    else
+        print(io, repeat(" ", left_pad), bracket, '\n')
+    end
+end
+
+function _print_prefix(P::QualityLogger)
+    _ql_print_prefix!(_ql_active_io(P), P)
+end
+
+function init_log!(P::QualityLogger, total, C = nothing)
     P.total = total
     P.done = 0
     P.passed = 0
     P.failed = 0
     P.row_index = 1
     P.row_pos = 0
-    P.block_width = P.width > 0 ? P.width : max(floor(Int, sqrt(max(total, 1))), 50)
+    P.block_width = P.width > 0 ? P.width : min(floor(Int, sqrt(max(total, 1)) * 2), 50)
     P.started_at = time()
     P.pending = IOBuffer()
     P.lck = ReentrantLock()
 
     Threads.lock(P.lck) do
-        print(P.io, "N=$(total) with ")
-        if P.use_color
-            print(P.io, _QL_DIM, _chart_summary(C), _QL_RESET)
-        else
-            print(P.io, _chart_summary(C))
+        io = _ql_active_io(P)
+        if !isnothing(C)
+            print(io, "N=$(total) with ")
+            if P.use_color
+                print(io, _QL_DIM, _chart_summary(C), _QL_RESET)
+            else
+                print(io, _chart_summary(C))
+            end
+            print(io, '\n')
         end
-        print(P.io, '\n')
-        _print_prefix(P)
-        flush(P.io)
+        _ql_print_block_bracket!(io, P)
+        _ql_print_prefix!(io, P)
+        flush(io)
     end
 end
 
@@ -184,8 +202,9 @@ function log_log!(P::QualityLogger, i, y)
 
         should_flush = (P.done == P.total) || (P.done % _ql_every(P) == 0)
         if should_flush
-            _ql_flush_pending!(P)
-            flush(P.io)
+            io = _ql_active_io(P)
+            _ql_flush_pending!(P, io)
+            flush(io)
         end
     end
 end
@@ -194,22 +213,24 @@ log_log!(P::QualityLogger, i) = log_log!(P, i, nothing)
 
 function close_log!(P::QualityLogger)
     Threads.lock(P.lck) do
-        _ql_flush_pending!(P)
+        io = _ql_active_io(P)
+        _ql_flush_pending!(P, io)
         if P.done > 0
-            print(P.io, '\n')
+            print(io, '\n')
+            _ql_print_block_bracket_bottom!(io, P)
         end
-        print(P.io, _QL_BOLD)
-        print(P.io, rpad("summary", P.status_width))
+        print(io, _QL_BOLD)
+        print(io, rpad("summary", P.status_width))
         if P.use_color
-            print(P.io, _QL_DIM, "done=", _QL_RESET)
-            print(P.io, "$(P.done)/$(P.total) ")
-            print(P.io, _QL_BRIGHT_GREEN, "ok=$(P.passed) ", _QL_RESET)
-            print(P.io, _QL_BRIGHT_RED, "fail=$(P.failed)", _QL_RESET)
+            print(io, _QL_DIM, "done=", _QL_RESET)
+            print(io, "$(P.done)/$(P.total) ")
+            print(io, _QL_BRIGHT_GREEN, "ok=$(P.passed) ", _QL_RESET)
+            print(io, _QL_BRIGHT_RED, "fail=$(P.failed)", _QL_RESET)
         else
-            print(P.io, "done=$(P.done)/$(P.total) ok=$(P.passed) fail=$(P.failed)")
+            print(io, "done=$(P.done)/$(P.total) ok=$(P.passed) fail=$(P.failed)")
         end
-        print(P.io, _QL_RESET)
-        print(P.io, "\n\n")
-        flush(P.io)
+        print(io, _QL_RESET)
+        print(io, "\n\n")
+        flush(io)
     end
 end

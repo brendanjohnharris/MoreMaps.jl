@@ -36,20 +36,41 @@ Base.@kwdef mutable struct LogLogger <: Progress
     level::LogLevel = Info
     current::Atomic{Int} = Atomic{Int}(0)
     total::Int = 0 ÷ nlogs
+    started_at::Float64 = 0.0
     lck::AbstractLock = ReentrantLock()
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}} = nothing
     function LogLogger(nlogs::Int,
                        level::LogLevel = Info,
                        current = Atomic{Int}(0),
                        total = 0 ÷ nlogs,
+                       started_at = 0.0,
                        lck = ReentrantLock(),
                        channel = nothing)
-        new(nlogs, level, current, total, lck, channel)
+        new(nlogs, level, current, total, started_at, lck, channel)
     end
 end
+
+function _format_eta(seconds::Real)
+    t = max(0.0, float(seconds))
+    if t < 60
+        return "$(round(Int, t))s"
+    elseif t < 3600
+        return "$(round(Int, t / 60))m"
+    elseif t < 86400
+        return "$(round(Int, t / 3600))h"
+    else
+        return "$(round(Int, t / 86400))d"
+    end
+end
+
+function _format_elapsed_total(elapsed::Real, estimated_total::Real)
+    "$(_format_eta(elapsed)) / $(_format_eta(estimated_total))"
+end
+
 function init_log!(P::LogLogger, total)
     P.total = total
     P.current = Atomic{Int}(0)
+    P.started_at = time()
     P.channel = RemoteChannel(() -> Channel{Bool}(P.nlogs + 1), 1)
     P.lck = ReentrantLock()
 
@@ -57,7 +78,14 @@ function init_log!(P::LogLogger, total)
     @async while take!(P.channel)
         Threads.lock(P.lck) do
             Threads.atomic_add!(P.current, 1)
-            @logmsg P.level "Progress: $(P.current[]*every) / $(P.total)"
+            done = min(P.current[] * every, P.total)
+            elapsed = max(time() - P.started_at, eps())
+            estimated_total = if done > 0
+                elapsed * P.total / done
+            else
+                Inf
+            end
+            @logmsg P.level "Progress: $(done) / $(P.total) ($(_format_elapsed_total(elapsed, estimated_total)))"
         end
     end
 end

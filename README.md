@@ -81,6 +81,7 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `LogLogger`: Logs progress information with `@info`
 - `ProgressLogger`: Uses `ProgressLogging.jl`
 - `TermLogger`: Uses `Term.jl`
+- `QualityLogger`
 
 ## Leaf types
 
@@ -104,3 +105,40 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - [`PmapProgressMeter`](https://github.com/slundberg/PmapProgressMeter.jl): Progress tracking specifically for pmap operations
 - [`MappedArrays`](https://github.com/JuliaArrays/MappedArrays.jl): Lazy element-wise transformations without memory allocation
 - [`FoldsThreads`](https://github.com/JuliaFolds/FoldsThreads.jl): Multiple threading executors (WorkStealingEx, DepthFirstEx, NondeterministicEx)
+
+# Gallery
+
+### InfoProgress
+
+```julia {cast="true"}
+using MoreMaps
+x = rand(10);
+f(x) = (sleep(0.1); x^2);
+map(f, LogLogger() |> Chart, x)
+```
+
+![](assets/output_1_@cast.gif)
+
+### TermLogger
+
+```julia {cast="true"}
+using MoreMaps
+import MoreMaps: TermLogger
+
+x = randn(100);
+f(x) = (sleep(0.05); x^2);
+map(f, TermLogger() |> Chart, x)
+```
+
+![](assets/output_2_@cast.gif)
+
+### QualityLogger
+
+```julia {cast="true"}
+using MoreMaps
+x = randn(100);
+f(x) = (sleep(0.05); x > 0.5 ? NaN : x^2);
+map(f, QualityLogger() |> Chart, x)
+```
+
+![](assets/output_3_@cast.gif)

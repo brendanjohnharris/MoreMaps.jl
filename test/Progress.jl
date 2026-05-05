@@ -51,6 +51,9 @@ end
     @test map(logger.logs) do l
         occursin("Progress: ", string(l))
     end |> all
+    @test map(logger.logs) do l
+        occursin("time: ", string(l))
+    end |> all
     @test length(logger.logs) == N
 
     N = 4 # Not divisible
