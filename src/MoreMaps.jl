@@ -47,9 +47,11 @@ The default progress logger that performs no logging.
 struct NoProgress <: Progress end
 export NoProgress
 init_log!(P::NoProgress, N) = nothing
+init_log!(P::NoProgress, N, C) = nothing
 log_log!(P::NoProgress, i) = nothing
 close_log!(P::NoProgress) = nothing
 log_log!(P::Progress, i, y) = log_log!(P, i) # Compatibility
+init_log!(P::Progress, N, C) = init_log!(P, N) # Compatibility
 
 # * So for ramap we want to flatten the iterator
 
@@ -106,7 +108,7 @@ progress(C::Chart) = C.progress
 expansion(C::Chart) = C.expansion
 hasexpansion(C::Chart{B, P, L, E}) where {B, P, L, E} = !(E <: NoExpansion)
 
-init_log!(C::Chart, N) = init_log!(progress(C), N) # * Specialized when defining a logger type
+init_log!(C::Chart, N) = init_log!(progress(C), N, C) # * Specialized when defining a logger type
 log_log!(C::Chart, args...) = log_log!(progress(C), args...)
 close_log!(C::Chart) = close_log!(progress(C))
 
