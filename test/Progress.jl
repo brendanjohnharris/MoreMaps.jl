@@ -52,7 +52,7 @@ end
         occursin("Progress: ", string(l))
     end |> all
 
-    @test length(logger.logs) == N
+    @test length(logger.logs) == N + 1
 
     N = 4 # Not divisible
     C = Chart(MoreMaps.LogLogger(N))
@@ -61,7 +61,7 @@ end
         map(f, C, x)
     end
     @test y == map(f, x)
-    @test length(logger.logs) ≥ N
+    @test length(logger.logs) ≥ N + 1
 
     # * Different log level
     N = 10
@@ -76,7 +76,18 @@ end
     @test map(logger.logs) do l
         occursin("Progress: ", string(l)) && l.level == Warn
     end |> all
-    @test length(logger.logs) == N
+    @test length(logger.logs) == N + 1
+
+    # nlogs = 0 means log every iteration
+    C = Chart(MoreMaps.LogLogger(0))
+    logger = TestLogger()
+    y = with_logger(logger) do
+        map(identity, C, x)
+    end
+    @test y == map(identity, x)
+    @test length(logger.logs) == length(x) + 1
+    @test occursin("Progress: 0 / $(length(x)) (??s / ??s)",
+                   string(first(logger.logs).message))
 end
 
 @testitem "Expansion progress" setup=[Setup] begin

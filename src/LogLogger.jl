@@ -35,20 +35,22 @@ Base.@kwdef mutable struct LogLogger <: Progress
     nlogs::Int = 10
     level::LogLevel = Info
     current::Atomic{Int} = Atomic{Int}(0)
-    total::Int = 0 ÷ nlogs
+    total::Int = 0
     started_at::Float64 = 0.0
     lck::AbstractLock = ReentrantLock()
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}} = nothing
     function LogLogger(nlogs::Int,
                        level::LogLevel = Info,
                        current = Atomic{Int}(0),
-                       total = 0 ÷ nlogs,
+                       total = 0,
                        started_at = 0.0,
                        lck = ReentrantLock(),
                        channel = nothing)
         new(nlogs, level, current, total, started_at, lck, channel)
     end
 end
+
+_progress_every(total::Int, nlogs::Int) = nlogs <= 0 ? 1 : max(1, div(total, nlogs))
 
 function _format_eta(seconds::Real)
     t = max(0.0, float(seconds))
@@ -71,10 +73,12 @@ function init_log!(P::LogLogger, total)
     P.total = total
     P.current = Atomic{Int}(0)
     P.started_at = time()
-    P.channel = RemoteChannel(() -> Channel{Bool}(P.nlogs + 1), 1)
+    P.channel = RemoteChannel(() -> Channel{Bool}(max(P.nlogs, 1) + 1), 1)
     P.lck = ReentrantLock()
 
-    every = max(1, div(P.total, P.nlogs))
+    @logmsg P.level "Progress: 0 / $(P.total) (??s / ??s)"
+
+    every = _progress_every(P.total, P.nlogs)
     @async while take!(P.channel)
         Threads.lock(P.lck) do
             Threads.atomic_add!(P.current, 1)
@@ -90,7 +94,7 @@ function init_log!(P::LogLogger, total)
     end
 end
 function log_log!(P::LogLogger, i)
-    every = max(1, div(P.total, P.nlogs))
+    every = _progress_every(P.total, P.nlogs)
     i % every == 0 && put!(P.channel, true)
 end
 close_log!(P::LogLogger) = put!(P.channel, false)
