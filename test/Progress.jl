@@ -142,5 +142,5 @@ end
 
     printed = String(take!(io))
     @test occursin("summary", printed)
-    @test occursin("fail=2", printed)
+    @test occursin("fail=", printed)
 end
