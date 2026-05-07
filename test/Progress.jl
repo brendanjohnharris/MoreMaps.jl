@@ -90,6 +90,34 @@ end
                    string(first(logger.logs).message))
 end
 
+@testitem "LogLogger Pmap backend" setup=[Setup] begin
+    using Distributed
+
+    workers = Int[]
+    try
+        workers = addprocs(2; exeflags = "--project=$(Base.active_project())")
+        @everywhere workers using MoreMaps
+
+        x = randn(10)
+        C = Chart(MoreMaps.Pmap(), MoreMaps.LogLogger(0))
+
+        logger = TestLogger()
+        y = with_logger(logger) do
+            map(identity, C, x)
+        end
+
+        @test y == map(identity, x)
+        @test length(logger.logs) == length(x) + 1
+        @test map(logger.logs) do l
+            occursin("Progress: ", string(l))
+        end |> all
+        @test occursin("Progress: 0 / $(length(x)) (??s / ??s)",
+                       string(first(logger.logs).message))
+    finally
+        !isempty(workers) && rmprocs(workers)
+    end
+end
+
 @testitem "Expansion progress" setup=[Setup] begin
     x = randn(10)
     y = randn(10)
@@ -137,10 +165,39 @@ end
 
     @test filter(!isnan, out) == filter(!isnan, y)
     @test q.done == length(x)
-    @test q.failed > 0
-    @test q.passed > 0
+    @test q.red_count > 0
+    @test q.green_count > 0
+    @test q.orange_count == 0
+    @test q.yellow_count == 0
 
     printed = String(take!(io))
     @test occursin("summary", printed)
-    @test occursin("fail=", printed)
+    @test occursin("red=", printed)
+    @test occursin("green=", printed)
+end
+
+@testitem "QualityLogger 4-color bands" setup=[Setup] begin
+    x = randn(1000)
+
+    q = MoreMaps.QualityLogger(;  width = 16, quality = z -> z)
+    out = map(identity, Chart(q), x)
+
+    io = IOBuffer()
+    q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
+    C = Chart(q)
+
+    out = map(identity, C, x)
+
+    @test filter(!isnan, out) == filter(!isnan, x)
+    @test q.done == length(x)
+    @test q.red_count == 4
+    @test q.orange_count == 2
+    @test q.yellow_count == 2
+    @test q.green_count == 3
+
+    printed = String(take!(io))
+    @test occursin("red=4", printed)
+    @test occursin("orange=2", printed)
+    @test occursin("yellow=2", printed)
+    @test occursin("green=3", printed)
 end
