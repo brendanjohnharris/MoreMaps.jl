@@ -1,4 +1,3 @@
-using Serialization
 import Serialization: serialize, AbstractSerializer, serialize_type
 
 export QualityLogger
@@ -11,6 +10,8 @@ const _QL_ORANGE = "\e[38;5;208m"
 const _QL_BRIGHT_YELLOW = "\e[93m"
 const _QL_CYAN = "\e[36m"
 const _QL_YELLOW = "\e[33m"
+const _QL_BLACK = "\e[30m"
+const _QL_BRIGHT_BLUE = "\e[94m"
 const _QL_DIM = "\e[2m"
 const _QL_BOLD = "\e[1m"
 const _QL_RESET = "\e[0m"
@@ -55,10 +56,12 @@ Terminal logger that prints rows of colored blocks.
 - A real-valued score, interpreted in `[0, 1]` (values are clamped)
 
 Block color bands:
-- `[0.0, 0.25)`: red
+- `0.0`: black
+- `(0.0, 0.25)`: red
 - `[0.25, 0.5)`: orange
 - `[0.5, 0.75)`: yellow
-- `[0.75, 1.0]`: green
+- `[0.75, 1.0)`: green
+- `1.0`: blue
 
 If `width == 0`, row width defaults to `max(floor(Int, sqrt(total)), 50)` at runtime.
 The first `status_width` characters of each row are reserved for row number + ETA.
@@ -74,10 +77,6 @@ Base.@kwdef mutable struct QualityLogger <: Progress
 
     total::Int = 0
     done::Int = 0
-    red_count::Int = 0
-    orange_count::Int = 0
-    yellow_count::Int = 0
-    green_count::Int = 0
     row_index::Int = 1
     row_pos::Int = 0
     block_width::Int = 50
@@ -87,7 +86,8 @@ Base.@kwdef mutable struct QualityLogger <: Progress
 end
 
 function serialize(s::AbstractSerializer, P::QualityLogger)
-    serialize_type(s, QualityLogger)
+    Serialization.serialize_cycle(s, P) && return
+    Serialization.serialize_type(s, QualityLogger, true)
     for f in fieldnames(QualityLogger)
         v = getfield(P, f)
         serialize(s, f === :consumer ? nothing : v)
@@ -108,7 +108,11 @@ function _ql_score(x)
 end
 
 function _ql_bucket(score::Real)
-    if score < 0.25
+    if score == 0
+        return :black
+    elseif score == 1
+        return :blue
+    elseif score < 0.25
         return :red
     elseif score < 0.5
         return :orange
@@ -125,12 +129,16 @@ function _ql_print_block!(io::IO, bucket::Symbol, use_color::Bool)
         return
     end
 
-    if bucket === :red
+    if bucket === :black
+        print(io, _QL_BLACK, _QL_BLOCK, _QL_RESET)
+    elseif bucket === :red
         print(io, _QL_BRIGHT_RED, _QL_BLOCK, _QL_RESET)
     elseif bucket === :orange
         print(io, _QL_ORANGE, _QL_BLOCK, _QL_RESET)
     elseif bucket === :yellow
         print(io, _QL_BRIGHT_YELLOW, _QL_BLOCK, _QL_RESET)
+    elseif bucket === :blue
+        print(io, _QL_BRIGHT_BLUE, _QL_BLOCK, _QL_RESET)
     else
         print(io, _QL_BRIGHT_GREEN, _QL_BLOCK, _QL_RESET)
     end
@@ -211,21 +219,7 @@ function _ql_consume!(P::QualityLogger)
                 print(io, '\n')
                 _ql_print_block_bracket_bottom!(io, P)
             end
-            print(io, _QL_BOLD)
-            print(io, rpad("summary", P.status_width))
-            if P.use_color
-                print(io, _QL_DIM, "done=", _QL_RESET)
-                print(io, "$(P.done)/$(P.total) ")
-                print(io, _QL_BRIGHT_RED, "red=$(P.red_count) ", _QL_RESET)
-                print(io, _QL_ORANGE, "orange=$(P.orange_count) ", _QL_RESET)
-                print(io, _QL_BRIGHT_YELLOW, "yellow=$(P.yellow_count) ", _QL_RESET)
-                print(io, _QL_BRIGHT_GREEN, "green=$(P.green_count)", _QL_RESET)
-            else
-                print(io,
-                      "done=$(P.done)/$(P.total) red=$(P.red_count) orange=$(P.orange_count) yellow=$(P.yellow_count) green=$(P.green_count)")
-            end
-            print(io, _QL_RESET)
-            print(io, "\n\n")
+            print(io, '\n')
             flush(io)
             return
         end
@@ -233,15 +227,6 @@ function _ql_consume!(P::QualityLogger)
         bucket = _ql_bucket(score)
         P.done += 1
         P.row_pos += 1
-        if bucket === :red
-            P.red_count += 1
-        elseif bucket === :orange
-            P.orange_count += 1
-        elseif bucket === :yellow
-            P.yellow_count += 1
-        else
-            P.green_count += 1
-        end
 
         _ql_print_block!(pending, bucket, P.use_color)
 
@@ -263,10 +248,6 @@ end
 function init_log!(P::QualityLogger, total, C = nothing)
     P.total = total
     P.done = 0
-    P.red_count = 0
-    P.orange_count = 0
-    P.yellow_count = 0
-    P.green_count = 0
     P.row_index = 1
     P.row_pos = 0
     P.block_width = P.width > 0 ? P.width : min(floor(Int, sqrt(max(total, 1)) * 2), 50)

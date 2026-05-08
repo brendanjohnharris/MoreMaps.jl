@@ -39,14 +39,25 @@ Base.@kwdef mutable struct LogLogger <: Progress
     started_at::Float64 = 0.0
     lck::AbstractLock = ReentrantLock()
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}} = nothing
+    consumer::Union{Nothing, Task} = nothing
     function LogLogger(nlogs::Int,
                        level::LogLevel = Info,
                        current = Atomic{Int}(0),
                        total = 0,
                        started_at = 0.0,
                        lck = ReentrantLock(),
-                       channel = nothing)
-        new(nlogs, level, current, total, started_at, lck, channel)
+                       channel = nothing,
+                       consumer = nothing)
+        new(nlogs, level, current, total, started_at, lck, channel, consumer)
+    end
+end
+
+function Serialization.serialize(s::Serialization.AbstractSerializer, P::LogLogger)
+    Serialization.serialize_cycle(s, P) && return
+    Serialization.serialize_type(s, LogLogger, true)
+    for f in fieldnames(LogLogger)
+        v = getfield(P, f)
+        Serialization.serialize(s, f === :consumer ? nothing : v)
     end
 end
 
@@ -79,7 +90,7 @@ function init_log!(P::LogLogger, total)
     @logmsg P.level "Progress: 0 / $(P.total) (??s / ??s)"
 
     every = _progress_every(P.total, P.nlogs)
-    @async while take!(P.channel)
+    P.consumer = @async while take!(P.channel)
         Threads.lock(P.lck) do
             Threads.atomic_add!(P.current, 1)
             done = min(P.current[] * every, P.total)
@@ -97,4 +108,8 @@ function log_log!(P::LogLogger, i)
     every = _progress_every(P.total, P.nlogs)
     i % every == 0 && put!(P.channel, true)
 end
-close_log!(P::LogLogger) = put!(P.channel, false)
+function close_log!(P::LogLogger)
+    put!(P.channel, false)
+    P.consumer === nothing || wait(P.consumer)
+    return
+end

@@ -52,22 +52,30 @@ Once constructed, a re-used `TermLogger` will accumulate progress bars from subs
 See also: [`LogLogger`](@ref), [`ProgressLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
 """
 function MoreMaps.TermLogger(N = 0, args...; kwargs...)
-    MoreMaps.TermLogger(N, Term.ProgressBar(; DEFAULT_TERM_PROGRESS..., kwargs...))
+    MoreMaps.TermLogger(N, Term.ProgressBar(; DEFAULT_TERM_PROGRESS..., kwargs...),
+                        nothing, nothing)
 end
 
 function init_log!(P::MoreMaps.TermLogger, N)
     Term.Progress.addjob!(P.Progress; N)
     Term.Progress.start!(P.Progress)
-end
-function log_log!(P::MoreMaps.TermLogger, i)
-    job = last(P.Progress.jobs)
-    Term.Progress.update!(job)
+    P.channel = RemoteChannel(() -> Channel{Bool}(N + 1), 1)
 
-    every = P.nlogs == 0 ? 1 : max(1, div(job.N, P.nlogs))
-    i % every == 0 && Term.Progress.render(P.Progress)
+    job = last(P.Progress.jobs)
+    every = P.nlogs == 0 ? 1 : max(1, div(N, P.nlogs))
+    i = 0
+    P.consumer = @async while take!(P.channel)
+        Term.Progress.update!(job)
+        i += 1
+        i % every == 0 && Term.Progress.render(P.Progress)
+    end
 end
+
+log_log!(P::MoreMaps.TermLogger, i) = put!(P.channel, true)
 
 function close_log!(P::MoreMaps.TermLogger)
+    put!(P.channel, false)
+    P.consumer === nothing || wait(P.consumer)
     Term.Progress.stop!(P.Progress)
 end
 

@@ -123,6 +123,7 @@ map(f, LogLogger() |> Chart, x)
 
 ```julia {cast="true"}
 using MoreMaps
+using Term
 import MoreMaps: TermLogger
 
 x = randn(100);
@@ -142,3 +143,18 @@ map(f, QualityLogger() |> Chart, x)
 ```
 
 ![](assets/output_3_@cast.gif)
+
+```julia {cast="true"}
+using MoreMaps
+x = randn(100);
+function f(x)
+    sleep(0.05)
+    x = randn(10)
+    N = rand(0:10)
+    x[1:N] .= NaN
+    return x
+end
+map(f, QualityLogger() |> Chart, x)
+```
+
+![](assets/output_4_@cast.gif)

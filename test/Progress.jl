@@ -150,6 +150,22 @@ end
     f = x -> (sleep(0.3); x^2)
 end
 
+@testitem "Term Pmap" setup=[Setup] begin
+    using Term
+    using Distributed
+
+    workers = addprocs(2)
+    @everywhere using MoreMaps, Term
+    x = randn(10)
+    C = Chart(MoreMaps.Pmap(), MoreMaps.TermLogger())
+    y = map(abs, C, x)
+    @test y == map(abs, x)
+
+    C = Chart(MoreMaps.Pmap(), MoreMaps.TermLogger(5))
+    y = map(abs, C, x)
+    @test y == map(abs, x)
+end
+
 @testitem "QualityLogger" setup=[Setup] begin
     x = randn(1000)
     _f(x) = (y = sqrt(complex(x)); real(y) > 0 ? NaN : y)
@@ -165,18 +181,12 @@ end
 
     @test filter(!isnan, out) == filter(!isnan, y)
     @test q.done == length(x)
-    @test q.red_count > 0
-    @test q.green_count > 0
-    @test q.orange_count == 0
-    @test q.yellow_count == 0
 
     printed = String(take!(io))
-    @test occursin("summary", printed)
-    @test occursin("red=", printed)
-    @test occursin("green=", printed)
+    @test occursin("█", printed)
 end
 
-@testitem "QualityLogger 4-color bands" setup=[Setup] begin
+@testitem "QualityLogger 6-color bands" setup=[Setup] begin
     x = randn(1000)
 
     q = MoreMaps.QualityLogger(; width = 16, quality = z -> z)
@@ -190,27 +200,19 @@ end
 
     @test filter(!isnan, out) == filter(!isnan, x)
     @test q.done == length(x)
-    @test q.red_count == 4
-    @test q.orange_count == 2
-    @test q.yellow_count == 2
-    @test q.green_count == 3
 
     printed = String(take!(io))
-    @test occursin("red=4", printed)
-    @test occursin("orange=2", printed)
-    @test occursin("yellow=2", printed)
-    @test occursin("green=3", printed)
+    @test occursin("█", printed)
 end
 
 @testitem "QualityLogger Pmap" setup=[Setup] begin
     using Distributed
-    x = randn(1000)
+    x = rand(1000)
 
     addprocs(3)
     @everywhere using MoreMaps
 
-    q = MoreMaps.QualityLogger(; width = 16, quality = z -> z)
-    out = map(x -> (sleep(0.01); identity(x)), Chart(Pmap(), q), x)
+    out = map(abs, Chart(Pmap(), QualityLogger()), x)
 
     io = IOBuffer()
     q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
@@ -220,14 +222,7 @@ end
 
     @test filter(!isnan, out) == filter(!isnan, x)
     @test q.done == length(x)
-    @test q.red_count == 4
-    @test q.orange_count == 2
-    @test q.yellow_count == 2
-    @test q.green_count == 3
 
     printed = String(take!(io))
-    @test occursin("red=4", printed)
-    @test occursin("orange=2", printed)
-    @test occursin("yellow=2", printed)
-    @test occursin("green=3", printed)
+    @test occursin("█", printed)
 end

@@ -2,6 +2,7 @@ module MoreMaps
 export Chart
 import Distributed: RemoteChannel
 import Base.Threads: Atomic, ReentrantLock, AbstractLock
+using Serialization
 
 # Must have functionality:
 # - Option to thread the map
@@ -36,8 +37,19 @@ export ProgressLogger
 mutable struct TermLogger <: Progress # ? See extension for methods
     nlogs::Int
     Progress::Any
+    channel::Union{Nothing, RemoteChannel{Channel{Bool}}}
+    consumer::Union{Nothing, Task}
 end
 export TermLogger
+
+function Serialization.serialize(s::Serialization.AbstractSerializer, P::TermLogger)
+    Serialization.serialize_cycle(s, P) && return
+    Serialization.serialize_type(s, TermLogger, true)
+    for f in fieldnames(TermLogger)
+        v = getfield(P, f)
+        Serialization.serialize(s, f === :consumer ? nothing : v)
+    end
+end
 
 """
     NoProgress()
