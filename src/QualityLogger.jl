@@ -16,13 +16,11 @@ const _QL_BOLD = "\e[1m"
 const _QL_RESET = "\e[0m"
 const _QL_BLOCK = "█"
 
-_default_quality(y) = !_has_nan(y)
-
-_has_nan(y::AbstractFloat) = isnan(y)
-_has_nan(y::Number) = false
-_has_nan(y::Tuple) = sum(_has_nan, y) / length(y)
-_has_nan(y::AbstractArray) = sum(_has_nan, y) / length(y)
-_has_nan(y) = false
+_default_quality(y::AbstractFloat) = !isnan(y)
+_default_quality(y::Number) = true
+_default_quality(y::Tuple) = sum(_default_quality, y) / length(y)
+_default_quality(y::AbstractArray) = sum(_default_quality, y) / length(y)
+_default_quality(y) = true
 
 _type_label(x) = string(nameof(typeof(x)))
 
