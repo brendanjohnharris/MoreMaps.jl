@@ -17,8 +17,8 @@ _default_quality(y) = !_has_nan(y)
 
 _has_nan(y::AbstractFloat) = isnan(y)
 _has_nan(y::Number) = false
-_has_nan(y::Tuple) = any(_has_nan, y)
-_has_nan(y::AbstractArray) = any(_has_nan, y)
+_has_nan(y::Tuple) = sum(_has_nan, y) / length(y)
+_has_nan(y::AbstractArray) = sum(_has_nan, y) / length(y)
 _has_nan(y) = false
 
 _type_label(x) = string(nameof(typeof(x)))
