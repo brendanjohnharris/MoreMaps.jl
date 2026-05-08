@@ -1,3 +1,5 @@
+import Serialization: serialize, AbstractSerializer
+
 export QualityLogger
 
 const _QL_RED = "\e[31m"
@@ -81,8 +83,16 @@ Base.@kwdef mutable struct QualityLogger <: Progress
     row_pos::Int = 0
     block_width::Int = 50
     started_at::Float64 = 0.0
-    pending::IOBuffer = IOBuffer()
-    lck::AbstractLock = ReentrantLock()
+    channel::Union{Nothing, RemoteChannel{Channel{Float64}}} = nothing
+    consumer::Union{Nothing, Task} = nothing
+end
+
+function serialize(s::AbstractSerializer, P::QualityLogger)
+    Serialization.serialize_type(s, QualityLogger)
+    for f in fieldnames(QualityLogger)
+        v = getfield(P, f)
+        serialize(s, f === :consumer ? nothing : v)
+    end
 end
 
 _ql_every(P::QualityLogger) = P.nlogs == 0 ? 1 : max(1, div(max(P.total, 1), P.nlogs))
@@ -133,12 +143,6 @@ function _ql_active_io(P::QualityLogger)
     catch
         return stdout
     end
-end
-
-function _ql_flush_pending!(P::QualityLogger, io::IO)
-    chunk = String(take!(P.pending))
-    isempty(chunk) && return
-    print(io, chunk)
 end
 
 function _ql_print_prefix!(io::IO, P::QualityLogger)
@@ -195,6 +199,68 @@ function _print_prefix(P::QualityLogger)
     _ql_print_prefix!(_ql_active_io(P), P)
 end
 
+function _ql_consume!(P::QualityLogger)
+    io = _ql_active_io(P)
+    pending = IOBuffer()
+    every = _ql_every(P)
+    while true
+        score = take!(P.channel)
+        if isnan(score)
+            chunk = String(take!(pending))
+            !isempty(chunk) && print(io, chunk)
+            if P.done > 0
+                print(io, '\n')
+                _ql_print_block_bracket_bottom!(io, P)
+            end
+            print(io, _QL_BOLD)
+            print(io, rpad("summary", P.status_width))
+            if P.use_color
+                print(io, _QL_DIM, "done=", _QL_RESET)
+                print(io, "$(P.done)/$(P.total) ")
+                print(io, _QL_BRIGHT_RED, "red=$(P.red_count) ", _QL_RESET)
+                print(io, _QL_ORANGE, "orange=$(P.orange_count) ", _QL_RESET)
+                print(io, _QL_BRIGHT_YELLOW, "yellow=$(P.yellow_count) ", _QL_RESET)
+                print(io, _QL_BRIGHT_GREEN, "green=$(P.green_count)", _QL_RESET)
+            else
+                print(io,
+                      "done=$(P.done)/$(P.total) red=$(P.red_count) orange=$(P.orange_count) yellow=$(P.yellow_count) green=$(P.green_count)")
+            end
+            print(io, _QL_RESET)
+            print(io, "\n\n")
+            flush(io)
+            return
+        end
+
+        bucket = _ql_bucket(score)
+        P.done += 1
+        P.row_pos += 1
+        if bucket === :red
+            P.red_count += 1
+        elseif bucket === :orange
+            P.orange_count += 1
+        elseif bucket === :yellow
+            P.yellow_count += 1
+        else
+            P.green_count += 1
+        end
+
+        _ql_print_block!(pending, bucket, P.use_color)
+
+        if P.row_pos >= P.block_width && P.done < P.total
+            P.row_index += 1
+            P.row_pos = 0
+            print(pending, '\n')
+            _ql_print_prefix!(pending, P)
+        end
+
+        if (P.done == P.total) || (P.done % every == 0)
+            chunk = String(take!(pending))
+            !isempty(chunk) && print(io, chunk)
+            flush(io)
+        end
+    end
+end
+
 function init_log!(P::QualityLogger, total, C = nothing)
     P.total = total
     P.done = 0
@@ -206,92 +272,38 @@ function init_log!(P::QualityLogger, total, C = nothing)
     P.row_pos = 0
     P.block_width = P.width > 0 ? P.width : min(floor(Int, sqrt(max(total, 1)) * 2), 50)
     P.started_at = time()
-    P.pending = IOBuffer()
-    P.lck = ReentrantLock()
+    P.channel = RemoteChannel(() -> Channel{Float64}(max(total, 1) + 1), 1)
 
-    Threads.lock(P.lck) do
-        io = _ql_active_io(P)
-        if !isnothing(C)
-            print(io, "N=$(total) with ")
-            if P.use_color
-                print(io, _QL_DIM, _chart_summary(C), _QL_RESET)
-            else
-                print(io, _chart_summary(C))
-            end
-            print(io, '\n')
+    io = _ql_active_io(P)
+    if !isnothing(C)
+        print(io, "N=$(total) with ")
+        if P.use_color
+            print(io, _QL_DIM, _chart_summary(C), _QL_RESET)
+        else
+            print(io, _chart_summary(C))
         end
-        _ql_print_block_bracket!(io, P)
-        _ql_print_prefix!(io, P)
-        flush(io)
+        print(io, '\n')
     end
+    _ql_print_block_bracket!(io, P)
+    _ql_print_prefix!(io, P)
+    flush(io)
+
+    P.consumer = @async _ql_consume!(P)
 end
 
 function log_log!(P::QualityLogger, i, y)
-    Threads.lock(P.lck) do
-        q = try
-            P.quality(y)
-        catch
-            false
-        end
-        score = _ql_score(q)
-        bucket = _ql_bucket(score)
-
-        P.done += 1
-        P.row_pos += 1
-
-        if bucket === :red
-            P.red_count += 1
-        elseif bucket === :orange
-            P.orange_count += 1
-        elseif bucket === :yellow
-            P.yellow_count += 1
-        else
-            P.green_count += 1
-        end
-
-        _ql_print_block!(P.pending, bucket, P.use_color)
-
-        if P.row_pos >= P.block_width && P.done < P.total
-            P.row_index += 1
-            P.row_pos = 0
-            print(P.pending, '\n')
-            _ql_print_prefix!(P.pending, P)
-        end
-
-        should_flush = (P.done == P.total) || (P.done % _ql_every(P) == 0)
-        if should_flush
-            io = _ql_active_io(P)
-            _ql_flush_pending!(P, io)
-            flush(io)
-        end
+    q = try
+        P.quality(y)
+    catch
+        false
     end
+    put!(P.channel, _ql_score(q))
 end
 
-log_log!(P::QualityLogger, i) = log_log!(P, i, nothing)
+log_log!(P::QualityLogger, i) = put!(P.channel, _ql_score(P.quality(nothing)))
 
 function close_log!(P::QualityLogger)
-    Threads.lock(P.lck) do
-        io = _ql_active_io(P)
-        _ql_flush_pending!(P, io)
-        if P.done > 0
-            print(io, '\n')
-            _ql_print_block_bracket_bottom!(io, P)
-        end
-        print(io, _QL_BOLD)
-        print(io, rpad("summary", P.status_width))
-        if P.use_color
-            print(io, _QL_DIM, "done=", _QL_RESET)
-            print(io, "$(P.done)/$(P.total) ")
-            print(io, _QL_BRIGHT_RED, "red=$(P.red_count) ", _QL_RESET)
-            print(io, _QL_ORANGE, "orange=$(P.orange_count) ", _QL_RESET)
-            print(io, _QL_BRIGHT_YELLOW, "yellow=$(P.yellow_count) ", _QL_RESET)
-            print(io, _QL_BRIGHT_GREEN, "green=$(P.green_count)", _QL_RESET)
-        else
-            print(io,
-                  "done=$(P.done)/$(P.total) red=$(P.red_count) orange=$(P.orange_count) yellow=$(P.yellow_count) green=$(P.green_count)")
-        end
-        print(io, _QL_RESET)
-        print(io, "\n\n")
-        flush(io)
-    end
+    put!(P.channel, NaN)
+    P.consumer === nothing || wait(P.consumer)
+    return
 end

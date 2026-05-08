@@ -206,8 +206,11 @@ end
     using Distributed
     x = randn(1000)
 
+    addprocs(3)
+    @everywhere using MoreMaps
+
     q = MoreMaps.QualityLogger(; width = 16, quality = z -> z)
-    out = map(identity, Chart(Pmap(), q), x)
+    out = map(x -> (sleep(0.01); identity(x)), Chart(Pmap(), q), x)
 
     io = IOBuffer()
     q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
