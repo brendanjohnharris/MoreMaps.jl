@@ -1,4 +1,5 @@
-import Serialization: serialize, AbstractSerializer
+using Serialization
+import Serialization: serialize, AbstractSerializer, serialize_type
 
 export QualityLogger
 
@@ -88,7 +89,7 @@ Base.@kwdef mutable struct QualityLogger <: Progress
 end
 
 function serialize(s::AbstractSerializer, P::QualityLogger)
-    Serialization.serialize_type(s, QualityLogger)
+    serialize_type(s, QualityLogger)
     for f in fieldnames(QualityLogger)
         v = getfield(P, f)
         serialize(s, f === :consumer ? nothing : v)
