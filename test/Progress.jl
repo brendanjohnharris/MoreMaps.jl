@@ -179,8 +179,35 @@ end
 @testitem "QualityLogger 4-color bands" setup=[Setup] begin
     x = randn(1000)
 
-    q = MoreMaps.QualityLogger(;  width = 16, quality = z -> z)
+    q = MoreMaps.QualityLogger(; width = 16, quality = z -> z)
     out = map(identity, Chart(q), x)
+
+    io = IOBuffer()
+    q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
+    C = Chart(q)
+
+    out = map(identity, C, x)
+
+    @test filter(!isnan, out) == filter(!isnan, x)
+    @test q.done == length(x)
+    @test q.red_count == 4
+    @test q.orange_count == 2
+    @test q.yellow_count == 2
+    @test q.green_count == 3
+
+    printed = String(take!(io))
+    @test occursin("red=4", printed)
+    @test occursin("orange=2", printed)
+    @test occursin("yellow=2", printed)
+    @test occursin("green=3", printed)
+end
+
+@testitem "QualityLogger Pmap" setup=[Setup] begin
+    using Distributed
+    x = randn(1000)
+
+    q = MoreMaps.QualityLogger(; width = 16, quality = z -> z)
+    out = map(identity, Chart(Pmap(), q), x)
 
     io = IOBuffer()
     q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
