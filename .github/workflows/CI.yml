@@ -29,6 +29,7 @@ jobs:
           - '1.10'
           - '1.11'
           - '1.12'
+          - 'pre'
         os:
           - ubuntu-latest
           - macOS-latest
