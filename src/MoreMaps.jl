@@ -49,6 +49,7 @@ function Serialization.serialize(s::Serialization.AbstractSerializer, P::TermLog
         v = getfield(P, f)
         Serialization.serialize(s, f === :consumer ? nothing : v)
     end
+    return
 end
 
 """
@@ -77,30 +78,38 @@ abstract type AbstractChart end
 """
 
 """
-struct Chart{L <: Any,
-             B <: Backend,
-             P <: Union{Progress, NoProgress},
-             E <: Union{NoExpansion, Function}} <: AbstractChart
+struct Chart{
+        L <: Any,
+        B <: Backend,
+        P <: Union{Progress, NoProgress},
+        E <: Union{NoExpansion, Function},
+    } <: AbstractChart
     backend::B
     progress::P
     expansion::E
 end
 
-function Chart{L}(backend::B, progress::P,
-                  expansion::E) where {L <: Any, B <: Backend, P <: Progress,
-                                       E <: Union{NoExpansion, Function}}
-    Chart{L, B, P, E}(backend, progress, expansion)
+function Chart{L}(
+        backend::B, progress::P,
+        expansion::E
+    ) where {
+        L <: Any, B <: Backend, P <: Progress,
+        E <: Union{NoExpansion, Function},
+    }
+    return Chart{L, B, P, E}(backend, progress, expansion)
 end
 abstract type All end # * For default behavior, all element types are considered leaves
-function Chart(; leaf::Type = All,
-               backend::B = Sequential(),
-               progress::P = NoProgress(),
-               expansion::E = NoExpansion()) where {B <: Backend, P <: Progress, E}
-    Chart{leaf}(backend, progress, expansion)
+function Chart(;
+        leaf::Type = All,
+        backend::B = Sequential(),
+        progress::P = NoProgress(),
+        expansion::E = NoExpansion()
+    ) where {B <: Backend, P <: Progress, E}
+    return Chart{leaf}(backend, progress, expansion)
 end
 
 function Chart(args...)
-    kwargs = map(args) do arg
+    kwargs = Base.map(args) do arg
         if arg isa Backend
             :backend => arg
         elseif arg isa Progress
@@ -111,7 +120,7 @@ function Chart(args...)
             :expansion => arg
         end
     end
-    Chart(; kwargs...)
+    return Chart(; kwargs...)
 end
 
 leaf(C::Chart{L}) where {L} = L
@@ -132,13 +141,17 @@ function nindex(arr, idxs::Tuple)
         return nindex(getindex(arr, first(idxs)), Base.tail(idxs))
     end
 end
-function nindices(::Type{All}, arr::AbstractArray,
-                  current_path::NTuple{N, Int} where {N} = ())
-    nindices(Any, arr, current_path)
+function nindices(
+        ::Type{All}, arr::AbstractArray,
+        current_path::NTuple{N, Int} where {N} = ()
+    )
+    return nindices(Any, arr, current_path)
 end
-function nindices(leaf_type::Type, arr::AbstractArray,
-                  current_path::NTuple{N, Int} where {N} = ())
-    indices_found = Vector{NTuple{N, Int} where N}()
+function nindices(
+        leaf_type::Type, arr::AbstractArray,
+        current_path::NTuple{N, Int} where {N} = ()
+    )
+    indices_found = Vector{NTuple{N, Int} where {N}}()
 
     for (i, elem) in enumerate(arr)
         new_path = (current_path..., i)
@@ -153,7 +166,7 @@ function nindices(leaf_type::Type, arr::AbstractArray,
     return indices_found
 end
 function nview(arr, idxs::Tuple)
-    view(nindex(arr, idxs[1:(end - 1)]), idxs[end])
+    return view(nindex(arr, idxs[1:(end - 1)]), idxs[end])
 end
 function nviews(x, indices)
     return map(Base.Fix1(nview, x), indices)
@@ -186,9 +199,11 @@ _is_leaf(::Type, inleaf::Type) = false
 
 # Handle inleaf=Union{}
 _is_leaf(::Type{<:AbstractArray{T}}, ::Type{Union{}}) where {T} = true
-function _is_leaf(::Type{<:AbstractArray{T}},
-                  ::Type{Union{}}) where {T <: AbstractArray}
-    false
+function _is_leaf(
+        ::Type{<:AbstractArray{T}},
+        ::Type{Union{}}
+    ) where {T <: AbstractArray}
+    return false
 end
 
 # * Shortcuts for type stability with common arrays, up to a few iterative depths. Can these
@@ -198,23 +213,33 @@ nsimilar(::Type{In}, ::Type{Out}, x::AbstractArray{<:In}) where {In, Out} = simi
 nsimilar(::Type{All}, ::Type{Out}, x::AbstractArray) where {Out} = similar(x, Out) # Have to handle all the anys individually unfortunately
 
 # Similar nested arrays can be inferred recursively
-function nsimilar(::Type{In}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray{<:In}}) where {In, Out}
-    [nsimilar(In, Out, y) for y in x]
+function nsimilar(
+        ::Type{In}, ::Type{Out},
+        x::AbstractArray{<:AbstractArray{<:In}}
+    ) where {In, Out}
+    return [nsimilar(In, Out, y) for y in x]
 end
-function nsimilar(::Type{All}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray}) where {Out}
-    similar(x, Out)
+function nsimilar(
+        ::Type{All}, ::Type{Out},
+        x::AbstractArray{<:AbstractArray}
+    ) where {Out}
+    return similar(x, Out)
 end
 
-function nsimilar(::Type{In}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray{<:AbstractArray{<:In}}}) where {In,
-                                                                                   Out}
-    [nsimilar(In, Out, y) for y in x]
+function nsimilar(
+        ::Type{In}, ::Type{Out},
+        x::AbstractArray{<:AbstractArray{<:AbstractArray{<:In}}}
+    ) where {
+        In,
+        Out,
+    }
+    return [nsimilar(In, Out, y) for y in x]
 end
-function nsimilar(::Type{All}, ::Type{Out},
-                  x::AbstractArray{<:AbstractArray{<:AbstractArray}}) where {Out}
-    similar(x, Out)
+function nsimilar(
+        ::Type{All}, ::Type{Out},
+        x::AbstractArray{<:AbstractArray{<:AbstractArray}}
+    ) where {Out}
+    return similar(x, Out)
 end
 
 # # * Handle the Union{} case
@@ -243,11 +268,11 @@ end
 
 # * Expansions
 function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E <: NoExpansion}
-    itrs
+    return itrs
 end
 function expand(C::Chart{L, B, P, E}, itrs) where {L, B <: Backend, P, E}
     out = expand(expansion(C), L, itrs)
-    map(eachindex(itrs)) do i
+    return map(eachindex(itrs)) do i
         map(Base.Fix2(getindex, i), out)
     end |> Tuple
 end
@@ -279,8 +304,13 @@ function _map(f, c::C, args...; kwargs...) where {C <: AbstractChart}
     throw(ArgumentError("No map method defined for Chart type $C"))
 end
 
+
 function Base.map(f, c::C, itrs...) where {C <: AbstractChart}
-    _map(f, c, itrs...)
+    return _map(f, c, itrs...)
+end
+
+function Base.map(f, c::C, args...; kwargs...) where {C <: Union{Progress, Backend}}
+    return Base.map(f, Chart(c), args...; kwargs...)
 end
 
 function Base.map(f, c::C, tp::Tuple{Vararg{Any, N}}, tps...) where {N, C <: AbstractChart}
@@ -290,14 +320,16 @@ function Base.map(f, c::C, tp::Tuple{Vararg{Any, N}}, tps...) where {N, C <: Abs
     return NTuple{N, eltype(out)}(out)
 end
 
-function Base.map(f, c::C, nt::NamedTuple{names},
-                  nts::NamedTuple...) where {names, C <: AbstractChart}
+function Base.map(
+        f, c::C, nt::NamedTuple{names},
+        nts::NamedTuple...
+    ) where {names, C <: AbstractChart}
     if !Base.same_names(nt, nts...)
         throw(ArgumentError("Named tuple names do not match."))
     end
     itr = values(nt)
     itrs = map(values, nts)
-    map(f, c, itr, itrs...) |> NamedTuple{names}
+    return map(f, c, itr, itrs...) |> NamedTuple{names}
 end
 
 # * Component methods

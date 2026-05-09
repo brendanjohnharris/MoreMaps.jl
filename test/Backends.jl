@@ -1,4 +1,4 @@
-@testitem "Sequential" setup=[Setup] begin
+@testitem "Sequential" setup = [Setup] begin
     x = randn(10)
     f = Base.Fix1(^, 2)
     C = Chart(MoreMaps.Sequential())
@@ -12,9 +12,12 @@
     C = Chart(MoreMaps.Sequential(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
     @test_throws "return type" (@inferred map(f, C, x))
     @test map(f, C, x) == map(f, x)
+
+    # * Test passing jus ta backend, no Chart
+    @test map(f, MoreMaps.Sequential(), x) == map(f, x)
 end
 
-@testitem "Threaded" setup=[Setup] begin
+@testitem "Threaded" setup = [Setup] begin
     x = randn(10)
     C = Chart(MoreMaps.Threaded())
     f = Base.Fix1(^, 2)
@@ -30,7 +33,7 @@ end
     @test map(f, C, x) == map(f, x)
 end
 
-@testitem "Distributed" setup=[Setup] begin
+@testitem "Distributed" setup = [Setup] begin
     using Distributed
 
     try
@@ -54,7 +57,7 @@ end
     end
 end
 
-@testitem "Daggermap" setup=[Setup] begin
+@testitem "Daggermap" setup = [Setup] begin
     using Distributed
     using MoreMaps
     using Dagger
@@ -101,7 +104,7 @@ end
     end
 end
 
-@testitem "Tuples" setup=[Setup] begin
+@testitem "Tuples" setup = [Setup] begin
     x = (1, 2, 3)
     y = (4, 5, 6)
 
@@ -109,7 +112,7 @@ end
     z = @inferred map(+, Chart(), x, y)
     @test z == _z
 end
-@testitem "NamedTuples" setup=[Setup] begin
+@testitem "NamedTuples" setup = [Setup] begin
     x = (; a = 1, b = 2, c = 3)
     y = (; a = 4, b = 5, c = 6)
 

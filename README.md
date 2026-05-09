@@ -81,8 +81,7 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `LogLogger`: Logs progress information with `@info`
 - `ProgressLogger`: Uses `ProgressLogging.jl`
 - `TermLogger`: Uses `Term.jl`
-- `QualityLogger`
-
+- `QualityLogger`: Shows a quality metric (e.g. percentage of NaN values) in a progress array
 ## Leaf types
 
 - `MoreMaps.All`: Matches all element types; maps over each element of the root array

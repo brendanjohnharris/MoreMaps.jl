@@ -1,4 +1,4 @@
-@testitem "ProgressLogging" setup=[Setup] begin
+@testitem "ProgressLogging" setup = [Setup] begin
     x = randn(10)
 
     N = 10
@@ -36,7 +36,7 @@
     @test y == map(f, x)
     # @test length(logger.logs) ≥ N + 1
 end
-@testitem "LogLogger" setup=[Setup] begin
+@testitem "LogLogger" setup = [Setup] begin
     x = randn(10)
 
     N = 10
@@ -86,11 +86,16 @@ end
     end
     @test y == map(identity, x)
     @test length(logger.logs) == length(x) + 1
-    @test occursin("Progress: 0 / $(length(x)) (??s / ??s)",
-                   string(first(logger.logs).message))
+    @test occursin(
+        "Progress: 0 / $(length(x)) (??s / ??s)",
+        string(first(logger.logs).message)
+    )
+
+    # * Test passing progress only, no Chart
+    @test_nowarn map(f, MoreMaps.LogLogger(), x)
 end
 
-@testitem "LogLogger Pmap backend" setup=[Setup] begin
+@testitem "LogLogger Pmap backend" setup = [Setup] begin
     using Distributed
 
     workers = Int[]
@@ -111,14 +116,16 @@ end
         @test map(logger.logs) do l
             occursin("Progress: ", string(l))
         end |> all
-        @test occursin("Progress: 0 / $(length(x)) (??s / ??s)",
-                       string(first(logger.logs).message))
+        @test occursin(
+            "Progress: 0 / $(length(x)) (??s / ??s)",
+            string(first(logger.logs).message)
+        )
     finally
         !isempty(workers) && rmprocs(workers)
     end
 end
 
-@testitem "Expansion progress" setup=[Setup] begin
+@testitem "Expansion progress" setup = [Setup] begin
     x = randn(10)
     y = randn(10)
     N = 10
@@ -136,7 +143,7 @@ end
     @test length(logger.logs) ≥ N - 1
 end
 
-@testitem "Term" setup=[Setup] begin
+@testitem "Term" setup = [Setup] begin
     using Term
     x = randn(10)
 
@@ -150,7 +157,7 @@ end
     f = x -> (sleep(0.3); x^2)
 end
 
-@testitem "Term Pmap" setup=[Setup] begin
+@testitem "Term Pmap" setup = [Setup] begin
     using Term
     using Distributed
 
@@ -166,7 +173,7 @@ end
     @test y == map(abs, x)
 end
 
-@testitem "QualityLogger" setup=[Setup] begin
+@testitem "QualityLogger" setup = [Setup] begin
     x = randn(1000)
     _f(x) = (y = sqrt(complex(x)); real(y) > 0 ? NaN : y)
     f(x) = (sleep(0.01); _f(x))
@@ -186,7 +193,7 @@ end
     @test occursin("█", printed)
 end
 
-@testitem "QualityLogger 6-color bands" setup=[Setup] begin
+@testitem "QualityLogger 6-color bands" setup = [Setup] begin
     x = randn(1000)
 
     q = MoreMaps.QualityLogger(; width = 16, quality = z -> z)
@@ -205,7 +212,7 @@ end
     @test occursin("█", printed)
 end
 
-@testitem "QualityLogger Pmap" setup=[Setup] begin
+@testitem "QualityLogger Pmap" setup = [Setup] begin
     using Distributed
     x = rand(1000)
 
