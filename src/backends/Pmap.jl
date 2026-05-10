@@ -12,7 +12,9 @@ Best for:
 ## Usage
 
 ```jldoctest
-julia> using MoreMaps # @everywhere
+julia> using Distributed # Then addprocs()
+
+julia> @everywhere using MoreMaps
 
 julia> C = Chart(Pmap())
 Chart{MoreMaps.All, Pmap, NoProgress, NoExpansion}(Pmap(), NoProgress(), NoExpansion())

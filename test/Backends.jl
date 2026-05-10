@@ -63,6 +63,10 @@ end
     using Dagger
 
     try
+        addprocs(4)
+        @everywhere using MoreMaps
+        @everywhere using Dagger
+
         x = randn(10)
         C = Chart(MoreMaps.Daggermap())
         f = Base.Fix1(^, 2)
@@ -77,7 +81,7 @@ end
         @test_throws "return type" (@inferred map(f, C, x))
         @test map(f, C, x) == map(f, x)
 
-        function cpu_intensive_task(n)
+        @everywhere function cpu_intensive_task(n)
             result = 0.0
             for i in 1:n
                 result += sin(i) * cos(i) * sqrt(i)

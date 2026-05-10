@@ -20,6 +20,11 @@ end
     using Logging
     using ProgressLogging
     using BenchmarkTools
+    using Distributed
+
+    if nprocs() > 1
+        rmprocs()
+    end
 
     # Helper function to validate progress log messages
     function validate_progress_logs(logs, expected_total)
@@ -40,7 +45,7 @@ end
                         # Also validate that total matches expected
                         @test total == expected_total
                     catch e
-                        @warn "Could not parse progress message: $msg" exception=e
+                        @warn "Could not parse progress message: $msg" exception = e
                     end
                 end
             end
@@ -51,7 +56,7 @@ end
         # Define all available backends
         backends = [
             Sequential(),
-            Threaded()
+            Threaded(),
         ]
 
         # Define all available progress loggers
@@ -59,14 +64,14 @@ end
             NoProgress(),
             LogLogger(3),
             LogLogger(5),
-            LogLogger(10)
+            LogLogger(10),
         ]
 
         # Define different leaf types to test
         leaf_types = [
             MoreMaps.All,
             Union{},
-            Any
+            Any,
         ]
 
         # Add element-specific leaf type if x is not empty
@@ -81,7 +86,7 @@ end
         # Define expansion functions to test
         expansions = [
             NoExpansion(),
-            Iterators.product
+            Iterators.product,
         ]
 
         # Test all combinations of backend + logger + leaf type
@@ -268,8 +273,10 @@ end
         # Performance test with threading (only for larger arrays)
         if length(x) > 50
             C_threaded = Chart(MoreMaps.All, Threaded(), NoProgress(), NoExpansion())
-            C_sequential = Chart(MoreMaps.All, Sequential(), NoProgress(),
-                                 NoExpansion())
+            C_sequential = Chart(
+                MoreMaps.All, Sequential(), NoProgress(),
+                NoExpansion()
+            )
 
             if eltype(x) <: Number
                 y_threaded = map(x -> x^2, C_threaded, x)
@@ -281,8 +288,10 @@ end
         # Test with different progress logging levels - WITH VALIDATION
         if length(x) > 10
             for nlogs in [1, 3, 5]
-                C_progress = Chart(MoreMaps.All, Sequential(), LogLogger(nlogs),
-                                   NoExpansion())
+                C_progress = Chart(
+                    MoreMaps.All, Sequential(), LogLogger(nlogs),
+                    NoExpansion()
+                )
 
                 # Capture and validate progress logs
                 logger = TestLogger()
@@ -307,7 +316,119 @@ end
     Aqua.test_all(MoreMaps; unbound_args = false) # unbound_args=true
 end
 
-@testitem "nsimilar stability" setup=[Setup] begin
+@testitem "JET" begin
+    using JET
+    using Logging
+    if Base.VERSION >= v"1.12"
+        # JET checks for: undefined variables, no-method errors, dispatch issues, and
+        # (with @test_opt) type instabilities / runtime dispatch. We focus on @test_call
+        # since several intentional fallbacks in MoreMaps are not fully type-stable
+        # (e.g. Union{}/All leaf handling, Core.Compiler.return_type usage).
+
+        # --- Chart construction ---
+        @test_call Chart()
+        @test_call Chart(; leaf = Float64)
+        @test_call Chart(; backend = Sequential())
+        @test_call Chart(; backend = Threaded())
+        @test_call Chart(; progress = NoProgress())
+        @test_call Chart(; expansion = NoExpansion())
+        @test_call Chart(Float64, Sequential(), NoProgress(), NoExpansion())
+        @test_call Chart(MoreMaps.All, Threaded(), NoProgress(), NoExpansion())
+
+        # --- Accessors (should be fully inferable / call-clean) ---
+        let C = Chart(;
+                leaf = Float64, backend = Sequential(),
+                progress = NoProgress(), expansion = NoExpansion()
+            )
+            @test_call MoreMaps.leaf(C)
+            @test_call MoreMaps.backend(C)
+            @test_call MoreMaps.progress(C)
+            @test_call MoreMaps.expansion(C)
+            @test_opt MoreMaps.leaf(C)
+            @test_opt MoreMaps.backend(C)
+            @test_opt MoreMaps.progress(C)
+            @test_opt MoreMaps.expansion(C)
+        end
+
+        # --- nsimilar: shortcut paths that ARE type stable ---
+        let x = randn(10)
+            @test_call MoreMaps.nsimilar(Float64, Float32, x)
+            @test_opt MoreMaps.nsimilar(Float64, Float32, x)
+            @test_call MoreMaps.nsimilar(MoreMaps.All, Float32, x)
+            @test_opt MoreMaps.nsimilar(MoreMaps.All, Float32, x)
+        end
+        let x = [randn(2) for _ in 1:3]
+            @test_call MoreMaps.nsimilar(Float64, Float32, x)
+            @test_call MoreMaps.nsimilar(MoreMaps.All, Float32, x)
+            @test_opt MoreMaps.nsimilar(MoreMaps.All, Float32, x)
+        end
+
+        # --- nindex / nindices / nview ---
+        let x = randn(10)
+            @test_call MoreMaps.nindices(Float64, x)
+            @test_call MoreMaps.nindices(MoreMaps.All, x)
+            @test_call MoreMaps.nindex(x, (1,))
+            @test_call MoreMaps.nview(x, (1,))
+        end
+        let x = [randn(3) for _ in 1:2]
+            @test_call MoreMaps.nindices(Float64, x)
+            @test_call MoreMaps.nindex(x, (1, 2))
+            @test_call MoreMaps.nview(x, (1, 2))
+        end
+
+        # --- _is_leaf / sniff_leaf (pure type-level) ---
+        @test_call MoreMaps._is_leaf(Vector{Float64}, Float64)
+        @test_call MoreMaps._is_leaf(Vector{Vector{Float64}}, Float64)
+        @test_call MoreMaps.sniff_leaf(Float64, Vector{Float64})
+        @test_call MoreMaps.sniff_leaf(Float64, Vector{Vector{Float64}})
+        @test_opt MoreMaps.sniff_leaf(Float64, Vector{Vector{Float64}})
+
+        # --- map on flat Vector with Sequential/Threaded backends ---
+        let x = randn(20),
+                C_seq = Chart(Float64, Sequential(), NoProgress(), NoExpansion()),
+                C_thr = Chart(Float64, Threaded(), NoProgress(), NoExpansion()),
+                C_all = Chart(MoreMaps.All, Sequential(), NoProgress(), NoExpansion())
+            @test_call target_modules=(MoreMaps,) map(identity, C_seq, x)
+            @test_call target_modules=(MoreMaps,) map(x -> x + 1.0, C_seq, x)
+            @test_call target_modules=(MoreMaps,) map(+, C_seq, x, x)
+            @test_call map(identity, C_thr, x)
+            @test_call target_modules=(MoreMaps,) map(identity, C_all, x)
+        end
+
+        # --- map on nested array ---
+        let x = [randn(4) for _ in 1:3],
+                C = Chart(Float64, Sequential(), NoProgress(), NoExpansion())
+            @test_call target_modules=(MoreMaps,) map(x -> x + 1.0, C, x)
+        end
+
+        # --- map with Tuple / NamedTuple inputs ---
+        let C = Chart(Float64, Sequential(), NoProgress(), NoExpansion())
+            @test_call target_modules=(MoreMaps,) map(identity, C, (1.0, 2.0, 3.0))
+            @test_call target_modules=(MoreMaps,) map(identity, C, (a = 1.0, b = 2.0))
+        end
+
+        # --- map dispatching from a bare backend / progress ---
+        @test_call map(identity, Sequential(), randn(5))
+        @test_call map(identity, NoProgress(), randn(5))
+
+        # --- Progress logger init / log / close (NoProgress branch) ---
+        let C = Chart(Float64, Sequential(), NoProgress(), NoExpansion())
+            @test_call MoreMaps.init_log!(C, 10)
+            @test_call MoreMaps.log_log!(C, 1)
+            @test_call MoreMaps.close_log!(C)
+        end
+
+        # --- LogLogger paths (constructor + logging hooks) ---
+        @test_call LogLogger(5)
+        let C = Chart(Float64, Sequential(), LogLogger(5), NoExpansion())
+            @test_call MoreMaps.init_log!(C, 10)
+            @test_call MoreMaps.log_log!(C, 1)
+            @test_call MoreMaps.close_log!(C)
+        end
+    end
+end
+
+@testitem "nsimilar stability" setup = [Setup] begin
     x = randn(100)
     inleaf = Float64
     outleaf = Float32
@@ -362,7 +483,7 @@ end
     @test y isa Vector{Vector{String}}
 end
 
-@testitem "nviews stability" setup=[Setup] begin
+@testitem "nviews stability" setup = [Setup] begin
     x = randn(100)
     leaf = Float64
     idxs = @inferred MoreMaps.nindices(leaf, x)
@@ -376,7 +497,7 @@ end
     @test_throws "return type" (@inferred MoreMaps.nviews(x, idxs))
 end
 
-@testitem "Asciicast" setup=[Setup] begin
+@testitem "Asciicast" setup = [Setup] begin
     using Asciicast
     cast_readme(MoreMaps)
 end

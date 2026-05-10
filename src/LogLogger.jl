@@ -90,7 +90,8 @@ function init_log!(P::LogLogger, total)
     @logmsg P.level "Progress: 0 / $(P.total) (??s / ??s)"
 
     every = _progress_every(P.total, P.nlogs)
-    P.consumer = @async while take!(P.channel)
+    ch = P.channel::RemoteChannel{Channel{Bool}}
+    P.consumer = @async while take!(ch)
         Threads.lock(P.lck) do
             Threads.atomic_add!(P.current, 1)
             done = min(P.current[] * every, P.total)
@@ -106,10 +107,11 @@ function init_log!(P::LogLogger, total)
 end
 function log_log!(P::LogLogger, i)
     every = _progress_every(P.total, P.nlogs)
-    i % every == 0 && put!(P.channel, true)
+    i % every == 0 && put!(P.channel::RemoteChannel{Channel{Bool}}, true)
 end
 function close_log!(P::LogLogger)
-    put!(P.channel, false)
-    P.consumer === nothing || wait(P.consumer)
+    put!(P.channel::RemoteChannel{Channel{Bool}}, false)
+    consumer = P.consumer
+    consumer === nothing || wait(consumer::Task)
     return
 end

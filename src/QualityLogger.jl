@@ -210,8 +210,9 @@ function _ql_consume!(P::QualityLogger)
     io = _ql_active_io(P)
     pending = IOBuffer()
     every = _ql_every(P)
+    ch = P.channel::RemoteChannel{Channel{Float64}}
     while true
-        score = take!(P.channel)
+        score = take!(ch)
         if isnan(score)
             chunk = String(take!(pending))
             !isempty(chunk) && print(io, chunk)
@@ -277,13 +278,14 @@ function log_log!(P::QualityLogger, i, y)
     catch
         false
     end
-    put!(P.channel, _ql_score(q))
+    put!(P.channel::RemoteChannel{Channel{Float64}}, _ql_score(q))
 end
 
-log_log!(P::QualityLogger, i) = put!(P.channel, _ql_score(P.quality(nothing)))
+log_log!(P::QualityLogger, i) = put!(P.channel::RemoteChannel{Channel{Float64}}, _ql_score(P.quality(nothing)))
 
 function close_log!(P::QualityLogger)
-    put!(P.channel, NaN)
-    P.consumer === nothing || wait(P.consumer)
+    put!(P.channel::RemoteChannel{Channel{Float64}}, NaN)
+    consumer = P.consumer
+    consumer === nothing || wait(consumer::Task)
     return
 end

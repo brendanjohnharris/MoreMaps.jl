@@ -64,18 +64,20 @@ function init_log!(P::MoreMaps.TermLogger, N)
     job = last(P.Progress.jobs)
     every = P.nlogs == 0 ? 1 : max(1, div(N, P.nlogs))
     i = 0
-    P.consumer = @async while take!(P.channel)
+    ch = P.channel::RemoteChannel{Channel{Bool}}
+    P.consumer = @async while take!(ch)
         Term.Progress.update!(job)
         i += 1
         i % every == 0 && Term.Progress.render(P.Progress)
     end
 end
 
-log_log!(P::MoreMaps.TermLogger, i) = put!(P.channel, true)
+log_log!(P::MoreMaps.TermLogger, i) = put!(P.channel::RemoteChannel{Channel{Bool}}, true)
 
 function close_log!(P::MoreMaps.TermLogger)
-    put!(P.channel, false)
-    P.consumer === nothing || wait(P.consumer)
+    put!(P.channel::RemoteChannel{Channel{Bool}}, false)
+    consumer = P.consumer
+    consumer === nothing || wait(consumer::Task)
     Term.Progress.stop!(P.Progress)
 end
 

@@ -100,7 +100,7 @@ end
 
     workers = Int[]
     try
-        workers = addprocs(2; exeflags = "--project=$(Base.active_project())")
+        workers = addprocs(2)
         @everywhere workers using MoreMaps
 
         x = randn(10)
@@ -161,16 +161,20 @@ end
     using Term
     using Distributed
 
-    workers = addprocs(2)
-    @everywhere using MoreMaps, Term
-    x = randn(10)
-    C = Chart(MoreMaps.Pmap(), MoreMaps.TermLogger())
-    y = map(abs, C, x)
-    @test y == map(abs, x)
+    try
+        workers = addprocs(2)
+        @everywhere using MoreMaps, Term
+        x = randn(10)
+        C = Chart(MoreMaps.Pmap(), MoreMaps.TermLogger())
+        y = map(abs, C, x)
+        @test y == map(abs, x)
 
-    C = Chart(MoreMaps.Pmap(), MoreMaps.TermLogger(5))
-    y = map(abs, C, x)
-    @test y == map(abs, x)
+        C = Chart(MoreMaps.Pmap(), MoreMaps.TermLogger(5))
+        y = map(abs, C, x)
+        @test y == map(abs, x)
+    finally
+        !isempty(workers) && rmprocs(workers)
+    end
 end
 
 @testitem "QualityLogger" setup = [Setup] begin
@@ -216,20 +220,24 @@ end
     using Distributed
     x = rand(1000)
 
-    addprocs(3)
-    @everywhere using MoreMaps
+    try
+        workers = addprocs(3)
+        @everywhere using MoreMaps
 
-    out = map(abs, Chart(Pmap(), QualityLogger()), x)
+        out = map(abs, Chart(Pmap(), QualityLogger()), x)
 
-    io = IOBuffer()
-    q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
-    C = Chart(q)
+        io = IOBuffer()
+        q = MoreMaps.QualityLogger(; io = io, width = 16, quality = z -> z)
+        C = Chart(q)
 
-    out = map(identity, C, x)
+        out = map(identity, C, x)
 
-    @test filter(!isnan, out) == filter(!isnan, x)
-    @test q.done == length(x)
+        @test filter(!isnan, out) == filter(!isnan, x)
+        @test q.done == length(x)
 
-    printed = String(take!(io))
-    @test occursin("█", printed)
+        printed = String(take!(io))
+        @test occursin("█", printed)
+    finally
+        !isempty(workers) && rmprocs(workers)
+    end
 end
