@@ -388,23 +388,23 @@ end
                 C_seq = Chart(Float64, Sequential(), NoProgress(), NoExpansion()),
                 C_thr = Chart(Float64, Threaded(), NoProgress(), NoExpansion()),
                 C_all = Chart(MoreMaps.All, Sequential(), NoProgress(), NoExpansion())
-            @test_call target_modules=(MoreMaps,) map(identity, C_seq, x)
-            @test_call target_modules=(MoreMaps,) map(x -> x + 1.0, C_seq, x)
-            @test_call target_modules=(MoreMaps,) map(+, C_seq, x, x)
+            @test_call target_modules = (MoreMaps,) map(identity, C_seq, x)
+            @test_call target_modules = (MoreMaps,) map(x -> x + 1.0, C_seq, x)
+            @test_call target_modules = (MoreMaps,) map(+, C_seq, x, x)
             @test_call map(identity, C_thr, x)
-            @test_call target_modules=(MoreMaps,) map(identity, C_all, x)
+            @test_call target_modules = (MoreMaps,) map(identity, C_all, x)
         end
 
         # --- map on nested array ---
         let x = [randn(4) for _ in 1:3],
                 C = Chart(Float64, Sequential(), NoProgress(), NoExpansion())
-            @test_call target_modules=(MoreMaps,) map(x -> x + 1.0, C, x)
+            @test_call target_modules = (MoreMaps,) map(x -> x + 1.0, C, x)
         end
 
         # --- map with Tuple / NamedTuple inputs ---
         let C = Chart(Float64, Sequential(), NoProgress(), NoExpansion())
-            @test_call target_modules=(MoreMaps,) map(identity, C, (1.0, 2.0, 3.0))
-            @test_call target_modules=(MoreMaps,) map(identity, C, (a = 1.0, b = 2.0))
+            @test_call target_modules = (MoreMaps,) map(identity, C, (1.0, 2.0, 3.0))
+            @test_call target_modules = (MoreMaps,) map(identity, C, (a = 1.0, b = 2.0))
         end
 
         # --- map dispatching from a bare backend / progress ---
@@ -421,9 +421,9 @@ end
         # --- LogLogger paths (constructor + logging hooks) ---
         @test_call LogLogger(5)
         let C = Chart(Float64, Sequential(), LogLogger(5), NoExpansion())
-            @test_call MoreMaps.init_log!(C, 10)
-            @test_call MoreMaps.log_log!(C, 1)
-            @test_call MoreMaps.close_log!(C)
+            @test_call target_modules = (MoreMaps,) MoreMaps.init_log!(C, 10)
+            @test_call target_modules = (MoreMaps,) MoreMaps.log_log!(C, 1)
+            @test_call target_modules = (MoreMaps,) MoreMaps.close_log!(C)
         end
     end
 end

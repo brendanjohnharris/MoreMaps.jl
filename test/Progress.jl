@@ -173,7 +173,7 @@ end
         y = map(abs, C, x)
         @test y == map(abs, x)
     finally
-        !isempty(workers) && rmprocs(workers)
+        nprocs() > 1 && rmprocs()
     end
 end
 
@@ -238,6 +238,6 @@ end
         printed = String(take!(io))
         @test occursin("█", printed)
     finally
-        !isempty(workers) && rmprocs(workers)
+        nprocs() > 1 && rmprocs()
     end
 end

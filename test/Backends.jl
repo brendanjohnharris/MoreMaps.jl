@@ -81,23 +81,15 @@ end
         @test_throws "return type" (@inferred map(f, C, x))
         @test map(f, C, x) == map(f, x)
 
-        @everywhere function cpu_intensive_task(n)
-            result = 0.0
-            for i in 1:n
-                result += sin(i) * cos(i) * sqrt(i)
-            end
-            return (result = result, worker_id = Distributed.myid())
-        end
-
         x = 1:1000:1000000
         C = Chart(MoreMaps.Daggermap(), LogLogger(10))
-        @inferred map(cpu_intensive_task, C, x)
-        @test map(cpu_intensive_task, C, x) == map(cpu_intensive_task, x)
+        @inferred map(MoreMaps.cpu_intensive_task, C, x)
+        @test map(MoreMaps.cpu_intensive_task, C, x) == map(MoreMaps.cpu_intensive_task, x)
 
         c = Chart(Sequential())
-        tc = @timed map(cpu_intensive_task, c, x)
+        tc = @timed map(MoreMaps.cpu_intensive_task, c, x)
         C = Chart(MoreMaps.Daggermap())
-        tC = @timed map(cpu_intensive_task, C, x)
+        tC = @timed map(MoreMaps.cpu_intensive_task, C, x)
         if Threads.nthreads() > 3
             @test tC.time < tc.time / 2
         end

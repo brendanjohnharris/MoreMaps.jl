@@ -3,6 +3,7 @@ export Chart
 import Distributed: RemoteChannel
 import Base.Threads: Atomic, ReentrantLock, AbstractLock
 using Serialization
+import Distributed: myid
 
 # Must have functionality:
 # - Option to thread the map
@@ -379,4 +380,15 @@ include("Expansion.jl")
 include("backends/Sequential.jl")
 include("backends/Threaded.jl")
 include("backends/Pmap.jl")
+
+
+# * Test utilities
+function cpu_intensive_task(n)
+    result = 0.0
+    for i in 1:n
+        result += sin(i) * cos(i) * sqrt(i)
+    end
+    return (result = result, worker_id = myid())
+end
+
 end
