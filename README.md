@@ -119,7 +119,7 @@ f(x) = (sleep(0.1); x^2);
 map(f, LogLogger() |> Chart, x)
 ```
 
-![](assets/output_1_@cast.gif)
+![](https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/v0.3.0/output_1_@cast.gif)
 
 ### TermLogger
 
@@ -133,7 +133,7 @@ f(x) = (sleep(0.05); x^2);
 map(f, TermLogger() |> Chart, x)
 ```
 
-![](assets/output_2_@cast.gif)
+![](https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/v0.3.0/output_2_@cast.gif)
 
 ### QualityLogger
 
@@ -144,7 +144,7 @@ f(x) = (sleep(0.05); x > 0.5 ? NaN : x^2);
 map(f, QualityLogger() |> Chart, x)
 ```
 
-![](assets/output_3_@cast.gif)
+![](https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/v0.3.0/output_3_@cast.gif)
 
 ```julia {cast="true"}
 using MoreMaps
@@ -159,7 +159,7 @@ end
 map(f, QualityLogger() |> Chart, x)
 ```
 
-![](assets/output_4_@cast.gif)
+![](https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/v0.3.0/output_4_@cast.gif)
 
 # Interface
 
