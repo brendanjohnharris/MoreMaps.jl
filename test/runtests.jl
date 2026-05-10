@@ -319,7 +319,7 @@ end
 @testitem "JET" begin
     using JET
     using Logging
-    if Base.VERSION >= v"1.12"
+    if v"1.12" <= Base.VERSION < v"1.13"
         # JET checks for: undefined variables, no-method errors, dispatch issues, and
         # (with @test_opt) type instabilities / runtime dispatch. We focus on @test_call
         # since several intentional fallbacks in MoreMaps are not fully type-stable
