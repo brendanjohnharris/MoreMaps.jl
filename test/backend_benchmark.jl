@@ -56,7 +56,7 @@ begin # * Define a fair memory-intensive task
         target_bytes = Int(total_memory * 0.8 / 4)  # 80% of total, then 1/4 of that
         target_gb = target_bytes / (1024^3)
 
-        println("Worker $(myid()): Task $task_id allocating $(round(target_gb, digits=2)) GB")
+        println("Worker $(myid()): Task $task_id allocating $(round(target_gb, digits = 2)) GB")
 
         # Allocate large array of Float64 (8 bytes each)
         num_elements = target_bytes ÷ 8
@@ -70,7 +70,7 @@ begin # * Define a fair memory-intensive task
         end
 
         actual_gb = sizeof(data) / (1024^3)
-        println("Worker $(myid()): Task $task_id allocated $(round(actual_gb, digits=2)) GB")
+        println("Worker $(myid()): Task $task_id allocated $(round(actual_gb, digits = 2)) GB")
 
         # Hold memory and do minimal computation
         sleep(1.0)  # Hold for 1 second
@@ -83,28 +83,32 @@ begin # * Define a fair memory-intensive task
 end
 
 begin # * Backends
-    backends = (MoreMaps.Sequential(),
-                MoreMaps.Daggermap(),
-                MoreMaps.Pmap(),
-                MoreMaps.Threaded())
+    backends = (
+        MoreMaps.Sequential(),
+        MoreMaps.Daggermap(),
+        MoreMaps.Pmap(),
+        MoreMaps.Threaded(),
+    )
 end
 begin # * Run cpu task for varying N
-    N = 1e7:1e7:1e10 .|> Int
+    N = 1.0e7:1.0e7:1.0e10 .|> Int
     cpu = map(backends) do B
         C = Chart(B)
         println("Benchmarking CPU task with backend: $(typeof(B))")
-        @benchmark map(cpu_task, $C, $N) samples=10 seconds=30
+        @benchmark map(cpu_task, $C, $N) samples = 10 seconds = 30
     end
 end
 begin # * Violin plot of times for each backend
     f = Figure()
-    ax = Axis(f[1, 1]; ylabel = "Time (s)", xlabel = "Backend",
-              title = "CPU Task Benchmark",
-              xticks = (1:length(backends), collect(string.(typeof.(backends)))))
+    ax = Axis(
+        f[1, 1]; ylabel = "Time (s)", xlabel = "Backend",
+        title = "CPU Task Benchmark",
+        xticks = (1:length(backends), collect(string.(typeof.(backends))))
+    )
     map(eachindex(backends)) do i
         c = cpu[i]
         b = backends[i] |> typeof |> string
-        times = c.times ./ 1e9
+        times = c.times ./ 1.0e9
         rainclouds!(ax, fill(i, length(c.times)), times; label = b)
     end
     f |> display

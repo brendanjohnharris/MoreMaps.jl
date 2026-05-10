@@ -40,14 +40,16 @@ Base.@kwdef mutable struct LogLogger <: Progress
     lck::AbstractLock = ReentrantLock()
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}} = nothing
     consumer::Union{Nothing, Task} = nothing
-    function LogLogger(nlogs::Int,
-                       level::LogLevel = Info,
-                       current = Atomic{Int}(0),
-                       total = 0,
-                       started_at = 0.0,
-                       lck = ReentrantLock(),
-                       channel = nothing,
-                       consumer = nothing)
+    function LogLogger(
+            nlogs::Int,
+            level::LogLevel = Info,
+            current = Atomic{Int}(0),
+            total = 0,
+            started_at = 0.0,
+            lck = ReentrantLock(),
+            channel = nothing,
+            consumer = nothing
+        )
         new(nlogs, level, current, total, started_at, lck, channel, consumer)
     end
 end
@@ -59,10 +61,11 @@ function Serialization.serialize(s::Serialization.AbstractSerializer, P::LogLogg
         v = getfield(P, f)
         Serialization.serialize(s, f === :consumer ? nothing : v)
     end
+    return
 end
 
 function _format_elapsed_total(elapsed::Real, estimated_total::Real)
-    "$(_format_human_time(elapsed)) / $(_format_human_time(estimated_total))"
+    return "$(_format_human_time(elapsed)) / $(_format_human_time(estimated_total))"
 end
 
 function init_log!(P::LogLogger, total)
@@ -76,7 +79,7 @@ function init_log!(P::LogLogger, total)
 
     every = _progress_every(P.total, P.nlogs)
     ch = P.channel::RemoteChannel{Channel{Bool}}
-    P.consumer = @async while take!(ch)
+    return P.consumer = @async while take!(ch)
         Threads.lock(P.lck) do
             Threads.atomic_add!(P.current, 1)
             done = min(P.current[] * every, P.total)
@@ -92,7 +95,7 @@ function init_log!(P::LogLogger, total)
 end
 function log_log!(P::LogLogger, i)
     every = _progress_every(P.total, P.nlogs)
-    i % every == 0 && put!(P.channel::RemoteChannel{Channel{Bool}}, true)
+    return i % every == 0 && put!(P.channel::RemoteChannel{Channel{Bool}}, true)
 end
 function close_log!(P::LogLogger)
     put!(P.channel::RemoteChannel{Channel{Bool}}, false)

@@ -65,8 +65,10 @@ or `NoProgress` to disable progress reporting entirely.
 See also: [`MoreMaps.LogLogger`](@ref), [`MoreMaps.NoProgress`](@ref), [`MoreMaps.Chart`](@ref)
 """
 function MoreMaps.ProgressLogger(args...; id = UUIDs.uuid4(), kwargs...)
-    MoreMaps.ProgressLogger(MoreMaps.LogLogger(args...),
-                            PLG.Progress(id; kwargs...))
+    return MoreMaps.ProgressLogger(
+        MoreMaps.LogLogger(args...),
+        PLG.Progress(id; kwargs...)
+    )
 end
 
 function init_log!(P::MoreMaps.ProgressLogger, total)
@@ -79,12 +81,14 @@ function init_log!(P::MoreMaps.ProgressLogger, total)
     @logmsg PLG.ProgressLevel Progress(P.Progress.id, 0.0; name = P.Progress.name)
 
     every = max(1, div(P.info.total, P.info.nlogs))
-    @async while take!(P.info.channel)
+    return @async while take!(P.info.channel)
         Threads.lock(P.info.lck) do
             Threads.atomic_add!(P.info.current, 1)
             progress = P.info.current[] * every / P.info.total
-            @logmsg PLG.ProgressLevel Progress(P.Progress.id, progress;
-                                               name = P.Progress.name)
+            @logmsg PLG.ProgressLevel Progress(
+                P.Progress.id, progress;
+                name = P.Progress.name
+            )
         end
     end
 end
@@ -92,7 +96,7 @@ log_log!(P::MoreMaps.ProgressLogger, args...) = log_log!(P.info, args...)
 
 function close_log!(P::MoreMaps.ProgressLogger)
     close_log!(P.info)
-    @logmsg PLG.ProgressLevel Progress(P.Progress.id; name = P.Progress.name, done = true)
+    return @logmsg PLG.ProgressLevel Progress(P.Progress.id; name = P.Progress.name, done = true)
 end
 
 end

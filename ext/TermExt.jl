@@ -52,8 +52,10 @@ Once constructed, a re-used `TermLogger` will accumulate progress bars from subs
 See also: [`MoreMaps.LogLogger`](@ref), [`MoreMaps.ProgressLogger`](@ref), [`MoreMaps.NoProgress`](@ref), [`MoreMaps.Chart`](@ref)
 """
 function MoreMaps.TermLogger(N = 0, args...; kwargs...)
-    MoreMaps.TermLogger(N, Term.ProgressBar(; DEFAULT_TERM_PROGRESS..., kwargs...),
-                        nothing, nothing)
+    return MoreMaps.TermLogger(
+        N, Term.ProgressBar(; DEFAULT_TERM_PROGRESS..., kwargs...),
+        nothing, nothing
+    )
 end
 
 function init_log!(P::MoreMaps.TermLogger, N)
@@ -65,7 +67,7 @@ function init_log!(P::MoreMaps.TermLogger, N)
     every = P.nlogs == 0 ? 1 : max(1, div(N, P.nlogs))
     i = 0
     ch = P.channel::RemoteChannel{Channel{Bool}}
-    P.consumer = @async while take!(ch)
+    return P.consumer = @async while take!(ch)
         Term.Progress.update!(job)
         i += 1
         i % every == 0 && Term.Progress.render(P.Progress)
@@ -78,7 +80,7 @@ function close_log!(P::MoreMaps.TermLogger)
     put!(P.channel::RemoteChannel{Channel{Bool}}, false)
     consumer = P.consumer
     consumer === nothing || wait(consumer::Task)
-    Term.Progress.stop!(P.Progress)
+    return Term.Progress.stop!(P.Progress)
 end
 
 end # module

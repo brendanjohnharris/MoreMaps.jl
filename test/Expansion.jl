@@ -1,4 +1,4 @@
-@testitem "Expansion" setup=[Setup] begin
+@testitem "Expansion" setup = [Setup] begin
     x = 1:2
     y = 3:4
     f = identity

@@ -30,7 +30,7 @@ function _chart_summary(C)
     backend_label = _type_label(backend(C))
     progress_label = _type_label(progress(C))
     expansion_label = _type_label(expansion(C))
-    "Chart(leaf=$(leaf_label), backend=$(backend_label), progress=$(progress_label), expansion=$(expansion_label))"
+    return "Chart(leaf=$(leaf_label), backend=$(backend_label), progress=$(progress_label), expansion=$(expansion_label))"
 end
 
 const _fmt_human_time = _format_human_time
@@ -81,6 +81,7 @@ function serialize(s::AbstractSerializer, P::QualityLogger)
         v = getfield(P, f)
         serialize(s, f === :consumer ? nothing : v)
     end
+    return
 end
 
 _ql_every(P::QualityLogger) = P.nlogs == 0 ? 1 : max(1, div(max(P.total, 1), P.nlogs))
@@ -118,7 +119,7 @@ function _ql_print_block!(io::IO, bucket::Symbol, use_color::Bool)
         return
     end
 
-    if bucket === :black
+    return if bucket === :black
         print(io, _QL_BLACK, _QL_BLOCK, _QL_RESET)
     elseif bucket === :red
         print(io, _QL_BRIGHT_RED, _QL_BLOCK, _QL_RESET)
@@ -154,7 +155,7 @@ function _ql_print_prefix!(io::IO, P::QualityLogger)
     pct = P.total == 0 ? 0 : round(Int, 100 * P.done / P.total)
     prefix_plain = "$(P.row_index)/$(cld(P.total, P.block_width))  $(pct)%  $(_fmt_human_time(elapsed_s))/$total_est_s"
 
-    if P.use_color
+    return if P.use_color
         print(io, _QL_CYAN, _QL_BOLD)
         print(io, "$(P.row_index)/$(cld(P.total, P.block_width))")
         print(io, _QL_RESET, "  ")
@@ -172,7 +173,7 @@ function _ql_print_block_bracket!(io::IO, P::QualityLogger)
     bracket = "┌" * repeat("─", w) * "┐"
     left_pad = max(P.status_width - 1, 0)
 
-    if P.use_color
+    return if P.use_color
         print(io, _QL_DIM, repeat(" ", left_pad), bracket, _QL_RESET, '\n')
     else
         print(io, repeat(" ", left_pad), bracket, '\n')
@@ -184,7 +185,7 @@ function _ql_print_block_bracket_bottom!(io::IO, P::QualityLogger)
     bracket = "└" * repeat("─", w) * "┘"
     left_pad = max(P.status_width - 1, 0)
 
-    if P.use_color
+    return if P.use_color
         print(io, _QL_DIM, repeat(" ", left_pad), bracket, _QL_RESET, '\n')
     else
         print(io, repeat(" ", left_pad), bracket, '\n')
@@ -192,7 +193,7 @@ function _ql_print_block_bracket_bottom!(io::IO, P::QualityLogger)
 end
 
 function _print_prefix(P::QualityLogger)
-    _ql_print_prefix!(_ql_active_io(P), P)
+    return _ql_print_prefix!(_ql_active_io(P), P)
 end
 
 function _ql_consume!(P::QualityLogger)
@@ -233,6 +234,7 @@ function _ql_consume!(P::QualityLogger)
             flush(io)
         end
     end
+    return
 end
 
 function init_log!(P::QualityLogger, total, C = nothing)
@@ -258,7 +260,7 @@ function init_log!(P::QualityLogger, total, C = nothing)
     _ql_print_prefix!(io, P)
     flush(io)
 
-    P.consumer = @async _ql_consume!(P)
+    return P.consumer = @async _ql_consume!(P)
 end
 
 function log_log!(P::QualityLogger, i, y)
@@ -267,7 +269,7 @@ function log_log!(P::QualityLogger, i, y)
     catch
         false
     end
-    put!(P.channel::RemoteChannel{Channel{Float64}}, _ql_score(q))
+    return put!(P.channel::RemoteChannel{Channel{Float64}}, _ql_score(q))
 end
 
 log_log!(P::QualityLogger, i) = put!(P.channel::RemoteChannel{Channel{Float64}}, _ql_score(P.quality(nothing)))

@@ -1,17 +1,17 @@
 # Changelog
 
-## [Unreleased] - 0.3.0
+## [0.3.0] - 2026-05-10
 
 ### Added
 - `QualityLogger` backend: a four-color, terminal-rendered progress logger that reports per-iteration completion state in addition to overall progress.
-- Rudimentary `Tuple` and `NamedTuple` support in `map` calls, with improved type stability for tuple inputs.
-- Ability to pass `Progress` or `Backend` *types* (not just instances) directly to mapping calls, so callers can opt in to a backend without constructing it by hand.
+- `Tuple` and `NamedTuple` support in `map` calls, with improved type stability for tuple inputs.
+- Ability to pass `Progress` or `Backend` types (not just instances) directly to mapping calls, so callers can opt in to a backend without constructing it by hand.
 - `LogLogger` now accepts `nlogs = 0` to suppress per-iteration log output.
 - README visualizations (animated GIFs) demonstrating each progress backend.
 - Monthly scheduled run added to the CI workflow.
 
 ### Changed
-- Generalized the log-logging machinery so progress backends share a common path through the extensions.
+- Generalized the logging machinery so progress backends share a common path through the extensions.
 - `QualityLogger` reworked for vector inputs and made more robust on irregular iteration counts.
 - Loggers in general made more robust around channel sizing and edge cases.
 
@@ -19,7 +19,7 @@
 - `DimensionalData` mapping: corrected behaviour when mapping over `Dim{}` arguments (a small test was added clarifying that `Iterators.product` is required for this case).
 - Channel-length bug in the progress channel used by `LogLogger`.
 - Compat fixes for `DimensionalData` and related extensions.
-- Various test-suite fixes for the new logger backends.
+- Multiple test-suite fixes for backend and logger edge cases.
 
 ### CI / Maintenance
 - Bumped `actions/checkout` from 4 to 6 (#5).
@@ -72,7 +72,8 @@ First tagged release.
 ### Notes
 - Generated from `PkgTemplates`.
 
-[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.1...HEAD
+[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/brendanjohnharris/MoreMaps.jl/releases/tag/v0.1.0

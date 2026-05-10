@@ -1,4 +1,4 @@
-@testitem "DimensionalData" setup=[Setup] begin
+@testitem "DimensionalData" setup = [Setup] begin
     using DimensionalData
 
     x = DimArray(x -> rand(), X(1:10))
@@ -37,7 +37,7 @@
     @test map(tuple, Chart(), X(1:10)) == DimArray(z, X(1:10))
 end
 
-@testitem "DimensionalData generic" setup=[Setup] begin
+@testitem "DimensionalData generic" setup = [Setup] begin
     using DimensionalData
     x = DimArray(x -> rand(), X(1:10))
     C = Chart(Threaded(), MoreMaps.All, NoExpansion(), LogLogger())
