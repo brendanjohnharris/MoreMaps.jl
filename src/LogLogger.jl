@@ -61,23 +61,8 @@ function Serialization.serialize(s::Serialization.AbstractSerializer, P::LogLogg
     end
 end
 
-_progress_every(total::Int, nlogs::Int) = nlogs <= 0 ? 1 : max(1, div(total, nlogs))
-
-function _format_eta(seconds::Real)
-    t = max(0.0, float(seconds))
-    if t < 60
-        return "$(round(Int, t))s"
-    elseif t < 3600
-        return "$(round(Int, t / 60))m"
-    elseif t < 86400
-        return "$(round(Int, t / 3600))h"
-    else
-        return "$(round(Int, t / 86400))d"
-    end
-end
-
 function _format_elapsed_total(elapsed::Real, estimated_total::Real)
-    "$(_format_eta(elapsed)) / $(_format_eta(estimated_total))"
+    "$(_format_human_time(elapsed)) / $(_format_human_time(estimated_total))"
 end
 
 function init_log!(P::LogLogger, total)

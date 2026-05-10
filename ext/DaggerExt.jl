@@ -3,8 +3,7 @@ module DaggerExt
 using Distributed
 using Dagger
 using MoreMaps
-import MoreMaps: Daggermap, init_log!, log_log!, close_log!, Chart, backend,
-                 preallocate, nviews
+import MoreMaps: Daggermap, Chart, backend
 
 """
     Daggermap(; kwargs...)
@@ -67,31 +66,14 @@ const DaggermapChart = Chart{L, B} where {L, B <: Daggermap}
 
 function MoreMaps._map(f, C::DaggermapChart, itrs...)
     options = backend(C).options
-    # * Get preallocated array, with indices, and a data view
-    out, idxs, xs = preallocate(C, f, itrs)
-
-    # * Initialize logger
-    init_log!(C, length(idxs))
-    function g(i, x...)
-        y = f(map(getindex, x)...)
-        log_log!(C, i, y)
-        return y
-    end
-
-    try # * Run loop
-        ys = nviews(out, idxs)
-
+    return MoreMaps._run_map(f, C, itrs) do g, ys, idxs, xs
         _ys = map(eachindex(idxs)) do i
             x = map(Base.Fix2(getindex, i), xs)
             Dagger.@spawn options... g(i, x...)
         end
-
         for (i, y) in enumerate(fetch.(_ys))
             @inbounds ys[i][] = y
         end
-    finally # * Finalize log
-        close_log!(C)
     end
-    return out
 end
 end

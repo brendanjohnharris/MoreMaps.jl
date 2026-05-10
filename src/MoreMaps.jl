@@ -27,6 +27,22 @@ export Daggermap
 
 # * Logging backends
 abstract type Progress end
+
+_progress_every(total::Int, nlogs::Int) = nlogs <= 0 ? 1 : max(1, div(total, nlogs))
+
+function _format_human_time(seconds::Real)
+    t = max(0.0, float(seconds))
+    if t < 60
+        return "$(round(Int, t))s"
+    elseif t < 3600
+        return "$(round(Int, t / 60))m"
+    elseif t < 86400
+        return "$(round(Int, t / 3600))h"
+    else
+        return "$(round(Int, t / 86400))d"
+    end
+end
+
 include("LogLogger.jl")
 include("QualityLogger.jl")
 mutable struct ProgressLogger <: Progress # ? See extension for methods
@@ -302,6 +318,32 @@ end
 
 function _map(f, c::C, args...; kwargs...) where {C <: AbstractChart}
     throw(ArgumentError("No map method defined for Chart type $C"))
+end
+
+"""
+    _run_map(kernel!, f, C, itrs)
+
+Shared scaffolding for `_map` implementations. Preallocates the output, initializes the
+logger, builds the per-element closure `g` (which calls `f` and emits a progress log), then
+invokes `kernel!(g, ys, idxs, xs)` where `ys = nviews(out, idxs)` is the writeable view of
+output leaves. Backends only need to provide `kernel!`, which drives `g` over `eachindex(idxs)`
+and writes results into `ys`. Logger lifecycle and exception safety are handled here.
+"""
+function _run_map(kernel!::F, f::G, C::AbstractChart, itrs::Tuple) where {F, G}
+    out, idxs, xs = preallocate(C, f, itrs)
+    init_log!(C, length(idxs))
+    g = (i, x...) -> begin
+        y = f(map(getindex, x)...)
+        log_log!(C, i, y)
+        return y
+    end
+    try
+        ys = nviews(out, idxs)
+        kernel!(g, ys, idxs, xs)
+    finally
+        close_log!(C)
+    end
+    return out
 end
 
 

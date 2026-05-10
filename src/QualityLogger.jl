@@ -33,18 +33,7 @@ function _chart_summary(C)
     "Chart(leaf=$(leaf_label), backend=$(backend_label), progress=$(progress_label), expansion=$(expansion_label))"
 end
 
-function _fmt_human_time(seconds::Real)
-    t = max(0.0, float(seconds))
-    if t < 60
-        return "$(round(Int, t))s"
-    elseif t < 3600
-        return "$(round(Int, t / 60))m"
-    elseif t < 86400
-        return "$(round(Int, t / 3600))h"
-    else
-        return "$(round(Int, t / 86400))d"
-    end
-end
+const _fmt_human_time = _format_human_time
 
 """
     QualityLogger(; nlogs = 0, width = 0, status_width = 20, quality = _default_quality, io = stdout)
