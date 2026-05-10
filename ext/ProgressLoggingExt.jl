@@ -62,7 +62,7 @@ Best with:
 that can be captured by compatible logging systems. Use `LogLogger` for simple console output
 or `NoProgress` to disable progress reporting entirely.
 
-See also: [`LogLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
+See also: [`MoreMaps.LogLogger`](@ref), [`MoreMaps.NoProgress`](@ref), [`MoreMaps.Chart`](@ref)
 """
 function MoreMaps.ProgressLogger(args...; id = UUIDs.uuid4(), kwargs...)
     MoreMaps.ProgressLogger(MoreMaps.LogLogger(args...),

@@ -42,7 +42,7 @@ julia> result = map(sum, C_nested, nested_data)
 Use `Sequential()` if order matters or for debugging.
 Performance depends on the number of threads available. Start Julia with `julia -t auto` or set the `JULIA_NUM_THREADS` environment variable.
 
-See also: [`Sequential`](@ref), [`Chart`](@ref), [`map`](@ref)
+See also: [`Sequential`](@ref), [`Chart`](@ref)
 """
 Threaded
 export Threaded

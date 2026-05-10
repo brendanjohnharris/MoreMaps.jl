@@ -49,7 +49,7 @@ appearance. Set `nlogs = 0` for maximum update frequency, or higher values to re
 The progress bar will be transient by default (disappears when complete).
 Once constructed, a re-used `TermLogger` will accumulate progress bars from subsequent maps.
 
-See also: [`LogLogger`](@ref), [`ProgressLogger`](@ref), [`NoProgress`](@ref), [`Chart`](@ref)
+See also: [`MoreMaps.LogLogger`](@ref), [`MoreMaps.ProgressLogger`](@ref), [`MoreMaps.NoProgress`](@ref), [`MoreMaps.Chart`](@ref)
 """
 function MoreMaps.TermLogger(N = 0, args...; kwargs...)
     MoreMaps.TermLogger(N, Term.ProgressBar(; DEFAULT_TERM_PROGRESS..., kwargs...),

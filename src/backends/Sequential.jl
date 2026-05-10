@@ -45,7 +45,7 @@ julia> result = map(sum, C_nested, nested_data)
  11
 ```
 
-See also: [`Threaded`](@ref), [`Chart`](@ref), [`map`](@ref)
+See also: [`Threaded`](@ref), [`Chart`](@ref)
 """
 Sequential
 

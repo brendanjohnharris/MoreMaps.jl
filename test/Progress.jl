@@ -92,7 +92,7 @@ end
     )
 
     # * Test passing progress only, no Chart
-    @test_nowarn map(f, MoreMaps.LogLogger(), x)
+    @test map(f, MoreMaps.LogLogger(), x) == map(f, x)
 end
 
 @testitem "LogLogger Pmap backend" setup = [Setup] begin
@@ -100,7 +100,7 @@ end
 
     workers = Int[]
     try
-        workers = addprocs(2)
+        addprocs(2)
         @everywhere workers using MoreMaps
 
         x = randn(10)
@@ -121,7 +121,7 @@ end
             string(first(logger.logs).message)
         )
     finally
-        !isempty(workers) && rmprocs(workers)
+        nprocs() > 1 && rmprocs()
     end
 end
 

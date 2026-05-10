@@ -11,8 +11,8 @@ Best for:
 
 ## Usage
 
-```jldoctest
-julia> using Distributed # Then addprocs()
+```julia
+julia> using Distributed; addprocs(2);
 
 julia> @everywhere using MoreMaps
 
@@ -40,7 +40,7 @@ julia> result = map(sum, Chart(Vector{Int}, Pmap()), [[1, 2], [3, 4], [5, 6]])
 any functions to be mapped.
 Functions and data are serialized across processes, which adds overhead.
 
-See also: [`Sequential`](@ref), [`Threaded`](@ref), [`Chart`](@ref), [`map`](@ref)
+See also: [`Sequential`](@ref), [`Threaded`](@ref), [`Chart`](@ref)
 """
 Pmap
 

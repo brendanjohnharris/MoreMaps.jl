@@ -58,7 +58,7 @@ julia> result = map(x -> x + 10, C_opts, [1, 2, 3])
 multiple processes. Tasks are spawned lazily and executed based on resource availability.
 The `options` keyword arguments are passed to `Dagger.@spawn`.
 
-See also: [`Sequential`](@ref), [`Threaded`](@ref), [`Pmap`](@ref), [`Chart`](@ref), [`map`](@ref)
+See also: [`MoreMaps.Sequential`](@ref), [`MoreMaps.Threaded`](@ref), [`MoreMaps.Pmap`](@ref), [`MoreMaps.Chart`](@ref)
 """
 MoreMaps.Daggermap
 
