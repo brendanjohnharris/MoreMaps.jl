@@ -84,7 +84,12 @@ end
         x = 1:1000:1000000
         C = Chart(MoreMaps.Daggermap(), LogLogger(10))
         @inferred map(MoreMaps.cpu_intensive_task, C, x)
-        @test map(MoreMaps.cpu_intensive_task, C, x) == map(MoreMaps.cpu_intensive_task, x)
+        y_dagger = map(MoreMaps.cpu_intensive_task, C, x)
+        y_seq = map(MoreMaps.cpu_intensive_task, x)
+
+        # Worker assignment is backend-dependent; only numeric results must match.
+        @test getfield.(y_dagger, :result) == getfield.(y_seq, :result)
+        @test all(r -> r.worker_id > 0, y_dagger)
 
         c = Chart(Sequential())
         tc = @timed map(MoreMaps.cpu_intensive_task, c, x)

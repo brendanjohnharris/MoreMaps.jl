@@ -101,7 +101,7 @@ end
     workers = Int[]
     try
         addprocs(2)
-        @everywhere workers using MoreMaps
+        @everywhere using MoreMaps
 
         x = randn(10)
         C = Chart(MoreMaps.Pmap(), MoreMaps.LogLogger(0))
