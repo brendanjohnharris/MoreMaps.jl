@@ -9,6 +9,7 @@
 - `LogLogger` now accepts `nlogs = 0` to suppress per-iteration log output.
 - README visualizations (animated GIFs) demonstrating each progress backend.
 - Monthly scheduled run added to the CI workflow.
+- Breaking: logging internals were generalized so progress backends share a common execution path.
 
 ### Changed
 - Generalized the logging machinery so progress backends share a common path through the extensions.
