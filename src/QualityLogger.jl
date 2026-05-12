@@ -180,6 +180,47 @@ function _ql_print_block_bracket!(io::IO, P::QualityLogger)
     end
 end
 
+function _ql_print_legend!(io::IO, P::QualityLogger)
+    entries = (
+        (:black, "0%"),
+        (:red, "<25%"),
+        (:orange, "<50%"),
+        (:yellow, "<75%"),
+        (:green, "<100%"),
+        (:blue, "100%"),
+    )
+    gap = 2
+    legend_width = sum(length(label) for (_, label) in entries) + gap * (length(entries) - 1)
+    bracket_span = max(P.block_width, 1) + 2
+    bracket_left = max(P.status_width - 1, 0)
+    left_pad = if legend_width <= bracket_span
+        bracket_left + div(bracket_span - legend_width, 2)
+    else
+        max(0, bracket_left + bracket_span - legend_width)
+    end
+    pad_str = repeat(" ", left_pad)
+
+    print(io, pad_str)
+    for (i, (bucket, label)) in enumerate(entries)
+        for _ in 1:length(label)
+            _ql_print_block!(io, bucket, P.use_color)
+        end
+        i < length(entries) && print(io, repeat(" ", gap))
+    end
+    print(io, '\n')
+    print(io, pad_str)
+    for (i, (_, label)) in enumerate(entries)
+        if P.use_color
+            print(io, _QL_DIM, label, _QL_RESET)
+        else
+            print(io, label)
+        end
+        i < length(entries) && print(io, repeat(" ", gap))
+    end
+    print(io, '\n')
+    return
+end
+
 function _ql_print_block_bracket_bottom!(io::IO, P::QualityLogger)
     w = max(P.block_width, 1)
     bracket = "└" * repeat("─", w) * "┘"
@@ -256,6 +297,7 @@ function init_log!(P::QualityLogger, total, C = nothing)
         end
         print(io, '\n')
     end
+    _ql_print_legend!(io, P)
     _ql_print_block_bracket!(io, P)
     _ql_print_prefix!(io, P)
     flush(io)

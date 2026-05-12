@@ -113,9 +113,7 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 ### InfoProgress
 
 ```julia {cast="true"}
-using MoreMaps
-x = rand(10);
-f(x) = (sleep(0.1); x^2);
+using MoreMaps; x = rand(10); f(x) = (sleep(0.1); x^2);
 map(f, LogLogger() |> Chart, x)
 ```
 
@@ -124,12 +122,9 @@ map(f, LogLogger() |> Chart, x)
 ### TermLogger
 
 ```julia {cast="true"}
-using MoreMaps
-using Term
-import MoreMaps: TermLogger
+using MoreMaps; using Term; import MoreMaps: TermLogger
 
-x = randn(100);
-f(x) = (sleep(0.05); x^2);
+x = randn(100); f(x) = (sleep(0.05); x^2);
 map(f, TermLogger() |> Chart, x)
 ```
 
@@ -138,8 +133,7 @@ map(f, TermLogger() |> Chart, x)
 ### QualityLogger
 
 ```julia {cast="true"}
-using MoreMaps
-x = randn(100);
+using MoreMaps; x = randn(100)
 f(x) = (sleep(0.05); x > 0.5 ? NaN : x^2);
 map(f, QualityLogger() |> Chart, x)
 ```
@@ -147,8 +141,7 @@ map(f, QualityLogger() |> Chart, x)
 ![](https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/v0.3.0/output_3_@cast.gif)
 
 ```julia {cast="true"}
-using MoreMaps
-x = randn(100);
+using MoreMaps ;x = randn(100);
 function f(x)
     sleep(0.05)
     x = randn(10)
