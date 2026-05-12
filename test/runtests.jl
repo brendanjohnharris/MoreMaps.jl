@@ -500,4 +500,17 @@ end
 @testitem "Asciicast" setup = [Setup] begin
     using Asciicast
     cast_readme(MoreMaps)
+
+    repo = pkgdir(MoreMaps)
+    tag = try
+        readchomp(Cmd(`git describe --tags --abbrev=0`; dir = repo))
+    catch
+        m = match(r"^version\s*=\s*\"([^\"]+)\""m, read(joinpath(repo, "Project.toml"), String))
+        "v" * m.captures[1]
+    end
+    base = "https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/$tag"
+    readme = joinpath(repo, "README.md")
+    str = read(readme, String)
+    str = replace(str, r"assets/(output_\d+_@cast\.gif)" => SubstitutionString("$base/\\1"))
+    write(readme, str)
 end
