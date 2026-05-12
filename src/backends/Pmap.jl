@@ -49,7 +49,10 @@ export Pmap
 const PmapChart = Chart{L, B} where {L, B <: Pmap}
 function MoreMaps._map(f, C::PmapChart, itrs...)
     return MoreMaps._run_map(f, C, itrs) do g, ys, idxs, xs
-        _ys = pmap(enumerate(zip(xs...))) do (i, t)
+        # Detach views from their parents so pmap does not serialize the full
+        # parent buffer with every task.
+        xs_owned = map(vs -> map(copy, vs), xs)
+        _ys = pmap(enumerate(zip(xs_owned...))) do (i, t)
             g(i, t...)
         end
         for (i, y) in enumerate(_ys)

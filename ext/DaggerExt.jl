@@ -67,8 +67,11 @@ const DaggermapChart = Chart{L, B} where {L, B <: Daggermap}
 function MoreMaps._map(f, C::DaggermapChart, itrs...)
     options = backend(C).options
     return MoreMaps._run_map(f, C, itrs) do g, ys, idxs, xs
+        # Detach views from their parents so task arguments do not serialize
+        # the full parent buffer with every spawned task.
+        xs_owned = map(vs -> map(copy, vs), xs)
         _ys = map(eachindex(idxs)) do i
-            x = map(Base.Fix2(getindex, i), xs)
+            x = map(Base.Fix2(getindex, i), xs_owned)
             Dagger.@spawn options... g(i, x...)
         end
         for (i, y) in enumerate(fetch.(_ys))
