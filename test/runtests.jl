@@ -7,6 +7,8 @@ using TestItemRunner
     using ProgressLogging
     using Dagger
     using Term
+    using OhMyThreads
+    using Polyester
 
     doctest(MoreMaps; manual = false)
 end

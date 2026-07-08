@@ -1,118 +1,94 @@
-# Backend benchmark (not part of the test suite). Run with:
+#! /bin/bash
+#=
+exec julia +1.12 -t auto --project="$(dirname "${BASH_SOURCE[0]}")" "${BASH_SOURCE[0]}" "$@"
+=#
+# Unified backend benchmark (not part of the test suite). Measures per-element overhead
+# and crossover behavior for every MoreMaps backend; the results inform the backend
+# comparison table in the README (update it when re-running on new hardware or Julia
+# versions). Setup:
 #   julia --project=benchmark -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
-#   julia --project=benchmark benchmark/backend_benchmark.jl
-using BenchmarkTools
+#   ./benchmark/backend_benchmark.jl
+
 using Distributed
-using Dagger
-using MoreMaps
-using CairoMakie
+nprocs() == 1 && addprocs(4)
+@everywhere using MoreMaps
+@everywhere using Dagger
+using OhMyThreads, Polyester
+using Printf
 
-begin # * Setup
-    addprocs(8)
-
-    proj = Base.active_project()
-    @everywhere using Pkg
-    @everywhere Pkg.activate($proj)
-    @everywhere using Distributed
-    @everywhere using MoreMaps
-    @everywhere using Dagger
-end
-
-@everywhere begin # * Define a fair cpu-intensive task
-    function cpu_task(n::Int, iterations::Int = 1000)
-        total_factors = 0
-
-        for i in 1:iterations
-            num = n + i
-            factors = 0
-
-            # Trial division factorization
-            d = 2
-            temp = num
-            while d * d <= temp
-                while temp % d == 0
-                    factors += d
-                    temp ÷= d
-                end
-                d += (d == 2) ? 1 : 2  # Skip even numbers after 2
-            end
-            if temp > 1
-                factors += temp
-            end
-
-            total_factors += factors
+@everywhere begin # CPU-busy for a target duration; the unit of tunable per-element cost
+    function busy(seconds)
+        t0 = time_ns()
+        x = 0.0
+        while (time_ns() - t0) < seconds * 1.0e9
+            x += sin(x + 1.0)
         end
-
-        return total_factors
+        return x
     end
 end
 
-begin # * Define a fair memory-intensive task
-    function memory_task(task_id::Int)
-        """
-        Simple memory-intensive task that allocates ~1/4 of available memory
-        Minimal CPU usage, maximum memory allocation
-        """
+const BACKENDS = [
+    "Sequential" => Sequential(),
+    "Threaded" => Threaded(),
+    "OhMyThreaded" => OhMyThreaded(),
+    "Polyestered" => Polyestered(),
+    "Asyncmap" => Asyncmap(),
+    "Pmap" => Pmap(),
+    "Daggermap" => Daggermap(),
+]
 
-        # Calculate target memory (1/4 of available system memory)
-        total_memory = Sys.total_memory()
-        target_bytes = Int(total_memory * 0.8 / 4)  # 80% of total, then 1/4 of that
-        target_gb = target_bytes / (1024^3)
+runone(f, b, x) = (map(f, Chart(b), x); @elapsed map(f, Chart(b), x)) # warm, then time
 
-        println("Worker $(myid()): Task $task_id allocating $(round(target_gb, digits = 2)) GB")
+begin # * Per-element overhead: trivial f over large N (README table: overhead column)
+    println("\n## Per-element overhead (trivial f, N = 10_000; seconds/element)")
+    N = 10_000
+    x = collect(1.0:N)
+    for (name, b) in BACKENDS
+        t = runone(sqrt, b, x)
+        @printf "%-14s %.3g\n" name t / N
+    end
+end
 
-        # Allocate large array of Float64 (8 bytes each)
-        num_elements = target_bytes ÷ 8
-
-        # Create the large array with minimal computation
-        data = Vector{Float64}(undef, num_elements)
-
-        # Fill with simple pattern (very low CPU cost)
-        for i in 1:num_elements
-            data[i] = Float64(i % 1000) * 0.001
+begin # * CPU-bound sweep (crossovers between threading and distribution)
+    println("\n## CPU-bound sweep (seconds; nthreads=$(Threads.nthreads()), nworkers=$(nworkers()))")
+    grid = [(1000, 1.0e-5), (100, 1.0e-3), (20, 5.0e-2)]
+    @printf "%-14s" "backend"
+    for (N, c) in grid
+        @printf " %12s" "N=$N,c=$c"
+    end
+    println()
+    for (name, b) in BACKENDS
+        @printf "%-14s" name
+        for (N, c) in grid
+            t = runone(_ -> busy(c), b, fill(1.0, N))
+            @printf " %12.4f" t
         end
-
-        actual_gb = sizeof(data) / (1024^3)
-        println("Worker $(myid()): Task $task_id allocated $(round(actual_gb, digits = 2)) GB")
-
-        # Hold memory and do minimal computation
-        sleep(1.0)  # Hold for 1 second
-
-        # Minimal computation - just touch a few elements
-        checksum = data[1] + data[end] + data[num_elements ÷ 2]
-
-        return actual_gb
+        println()
     end
 end
 
-begin # * Backends
-    backends = (
-        MoreMaps.Sequential(),
-        MoreMaps.Daggermap(),
-        MoreMaps.Pmap(),
-        MoreMaps.Threaded(),
-    )
-end
-begin # * Run cpu task for varying N
-    N = 1.0e7:1.0e7:1.0e10 .|> Int
-    cpu = map(backends) do B
-        C = Chart(B)
-        println("Benchmarking CPU task with backend: $(typeof(B))")
-        @benchmark map(cpu_task, $C, $N) samples = 10 seconds = 30
+begin # * IO-bound sweep: sleep instead of spin (Asyncmap territory)
+    println("\n## IO-bound sweep (f = sleep; seconds)")
+    grid = [(100, 1.0e-2), (500, 1.0e-3)]
+    @printf "%-14s" "backend"
+    for (N, c) in grid
+        @printf " %12s" "N=$N,c=$c"
+    end
+    println()
+    for (name, b) in BACKENDS
+        name == "Polyestered" && continue # sleep yields; not allowed in Polyester tasks
+        @printf "%-14s" name
+        for (N, c) in grid
+            t = runone(_ -> sleep(c), b, fill(1.0, N))
+            @printf " %12.4f" t
+        end
+        println()
     end
 end
-begin # * Violin plot of times for each backend
-    f = Figure()
-    ax = Axis(
-        f[1, 1]; ylabel = "Time (s)", xlabel = "Backend",
-        title = "CPU Task Benchmark",
-        xticks = (1:length(backends), collect(string.(typeof.(backends))))
-    )
-    map(eachindex(backends)) do i
-        c = cpu[i]
-        b = backends[i] |> typeof |> string
-        times = c.times ./ 1.0e9
-        rainclouds!(ax, fill(i, length(c.times)), times; label = b)
-    end
-    f |> display
+
+begin # * Notes on costs the sweeps exclude
+    println("\n## Notes")
+    println("- Startup costs (scheduler warmup, worker code loading) are excluded by the")
+    println("  warmup run; measure them in a fresh session if they matter.")
+    println("- Pmap/Daggermap columns include serialization of inputs/outputs.")
 end

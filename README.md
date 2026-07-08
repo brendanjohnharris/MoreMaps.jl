@@ -72,10 +72,17 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 
 ## Backends
 
-- `Sequential`: Default, no parallelism
-- `Threads`: Uses `Threads.jl`
-- `Distributed`: Uses `Distributed.jl` (pmap)
-- `Daggermap`: Uses `Dagger.jl`
+| Backend | Requires | Overhead per element\* | Use when |
+|----|----|----|----|
+| `Sequential` | — | ~0.2 µs | Default. Small or fast maps, debugging, deterministic execution order |
+| `Threaded` | `julia -t` | ~4 µs | CPU-bound elements on one machine; `Threads.@threads` |
+| `OhMyThreaded` | OhMyThreads.jl, `julia -t` | ~0.2 µs | Uneven per-element cost; chunked, load-balanced scheduling. Consistently outperformed `Threaded` in our benchmarks |
+| `Polyestered` | Polyester.jl, `julia -t` | ~1 µs | Very cheap elements at large N. Supports only `NoProgress` and `Monitor` (Polyester tasks must not yield) |
+| `Asyncmap` | — | ~5 µs | IO-bound elements (file loading, network): tasks overlap while waiting. Concurrency, not parallelism; no gain for CPU-bound work |
+| `Pmap` | `addprocs` | ~100 µs | Expensive elements (more than ~10 ms each) across processes; below that, serialization dominates |
+| `Daggermap` | Dagger.jl, `addprocs` | ~3 µs (batched) | Heterogeneous or multi-node resources; per-task scheduler options (`scope`, `occupancy`) via `Daggermap(; kwargs...)` |
+
+\*Scheduling and writeback floor for a trivial `f`, measured by `benchmark/backend_benchmark.jl` (Julia 1.12, 20 threads, 4 workers); re-run that script on your own machine for local numbers.
 
 ## Progress loggers
 
@@ -86,6 +93,20 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `QualityLogger`: Shows a quality metric (e.g. percentage of NaN values) in a progress array
 - `CallbackLogger`: Calls a user function per completed element (a programmatic sink)
 - `CompositeLogger`: Forwards progress events to multiple child loggers
+
+## Monitoring
+
+`Monitor` occupies the progress slot and cheaply records each job (two clock and GC
+snapshots, nothing per element):
+
+```julia
+M = Monitor()
+map(f, Chart(Threaded(), M), x)
+M.time, M.bytes, M.allocs, M.gctime, M.n
+```
+
+Combine with a logger via `CompositeLogger(Monitor(), LogLogger())`. For distributed
+backends the allocation counters cover the driver process only.
 
 ## Leaf types
 

@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0] - 2026-07-09
+
+### Added
+- `Asyncmap` backend (`Base.asyncmap`): single-process concurrency for IO-bound work.
+- `OhMyThreaded` backend (extension, weakdep OhMyThreads): `tforeach` with chunked, load-balanced scheduling; keyword options forwarded to `tforeach`.
+- `Polyestered` backend (extension, weakdep Polyester): `@batch` threading with very low per-iteration overhead; supports only `NoProgress`/`Monitor` (Polyester tasks must not yield, and channel-backed loggers yield on `put!`).
+- `Monitor`: a progress-slot component that cheaply records each job's wall time, driver-side allocation bytes/count, GC time, element count, and backend; zero per-element cost. Compose with loggers via `CompositeLogger`.
+- README table of backends and when each is useful, based on the unified benchmark.
+
+### Changed
+- `benchmark/backend_benchmark.jl` reworked into a unified sweep (per-element overhead, CPU-bound and IO-bound grids across all seven backends).
+
 ## [0.4.0] - 2026-07-08
 
 ### Breaking
@@ -96,7 +108,8 @@ First tagged release.
 ### Notes
 - Generated from `PkgTemplates`.
 
-[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.0...v0.2.1

@@ -119,6 +119,81 @@ end
     end
 end
 
+@testitem "Asyncmap" setup = [Setup] begin
+    x = randn(10)
+    f = Base.Fix1(^, 2)
+    C = Chart(MoreMaps.Asyncmap())
+    y = @inferred map(f, C, x)
+    @test y == map(f, x)
+
+    C = Chart(MoreMaps.Asyncmap(; ntasks = 2), Float64)
+    y = @inferred map(f, C, x)
+    @test y == map(f, x)
+
+    C = Chart(MoreMaps.Asyncmap(), Union{}) # * Generic map
+    @test_throws "return type" (@inferred map(f, C, x))
+    @test map(f, C, x) == map(f, x)
+
+    # * Concurrency: 20 sleeps of 50 ms should overlap, not serialize (~1 s serialized)
+    map(_ -> sleep(0.05), Chart(MoreMaps.Asyncmap()), 1:20) # warmup: exclude compilation
+    t = @elapsed map(_ -> sleep(0.05), Chart(MoreMaps.Asyncmap()), 1:20)
+    @test t < 20 * 0.05 / 2
+
+    # * Loggers work (single process, channel put! yields fine)
+    logger = TestLogger()
+    y = with_logger(logger) do
+        map(f, Chart(MoreMaps.Asyncmap(), MoreMaps.LogLogger(0)), x)
+    end
+    @test y == map(f, x)
+    @test length(logger.logs) == length(x) + 1
+end
+
+@testitem "OhMyThreaded" setup = [Setup] begin
+    using OhMyThreads
+    x = randn(10)
+    f = Base.Fix1(^, 2)
+    C = Chart(MoreMaps.OhMyThreaded())
+    y = @inferred map(f, C, x)
+    @test y == map(f, x)
+
+    C = Chart(MoreMaps.OhMyThreaded(; ntasks = 2), Float64) # tforeach options
+    y = @inferred map(f, C, x)
+    @test y == map(f, x)
+
+    C = Chart(MoreMaps.OhMyThreaded(), Union{}) # * Generic map
+    @test_throws "return type" (@inferred map(f, C, x))
+    @test map(f, C, x) == map(f, x)
+
+    logger = TestLogger()
+    y = with_logger(logger) do
+        map(f, Chart(MoreMaps.OhMyThreaded(), MoreMaps.LogLogger(0)), x)
+    end
+    @test y == map(f, x)
+    @test length(logger.logs) == length(x) + 1
+end
+
+@testitem "Polyestered" setup = [Setup] begin
+    using Polyester
+    x = randn(10)
+    f = Base.Fix1(^, 2)
+    C = Chart(MoreMaps.Polyestered())
+    y = @inferred map(f, C, x)
+    @test y == map(f, x)
+
+    C = Chart(MoreMaps.Polyestered(), Float64)
+    y = @inferred map(f, C, x)
+    @test y == map(f, x)
+
+    # * Channel-backed loggers are rejected (Polyester tasks must not yield)
+    @test_throws ArgumentError map(f, Chart(MoreMaps.Polyestered(), MoreMaps.LogLogger()), x)
+
+    # * Monitor is allowed (per-element no-op)
+    M = Monitor()
+    y = map(f, Chart(MoreMaps.Polyestered(), M), x)
+    @test y == map(f, x)
+    @test M.n == length(x)
+end
+
 @testitem "Tuples" setup = [Setup] begin
     x = (1, 2, 3)
     y = (4, 5, 6)

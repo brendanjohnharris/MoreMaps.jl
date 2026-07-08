@@ -20,12 +20,23 @@ abstract type Backend end
 struct Sequential <: Backend end # ? Regular sequential map
 struct Threaded <: Backend end # ? Threads.@threads
 struct Pmap <: Backend end
+struct Asyncmap <: Backend # ? Base.asyncmap
+    ntasks::Int
+end
+Asyncmap(; ntasks::Int = 100) = Asyncmap(ntasks)
 struct Daggermap{O <: NamedTuple} <: Backend
     options::O # Forwarded to Dagger.Options
     batchsize::Int # Elements per Dagger task; 0 = auto
 end
 Daggermap(; batchsize::Int = 0, kwargs...) = Daggermap(NamedTuple(kwargs), batchsize)
 export Daggermap
+struct OhMyThreaded{O <: NamedTuple} <: Backend # ? See extension for methods
+    options::O # Forwarded to OhMyThreads.tforeach (scheduler, ntasks, chunksize, ...)
+end
+OhMyThreaded(; kwargs...) = OhMyThreaded(NamedTuple(kwargs))
+export OhMyThreaded
+struct Polyestered <: Backend end # ? See extension for methods
+export Polyestered
 
 # * Logging backends
 abstract type Progress end
@@ -77,6 +88,7 @@ include("LogLogger.jl")
 include("QualityLogger.jl")
 include("CallbackLogger.jl")
 include("CompositeLogger.jl")
+include("Monitor.jl")
 mutable struct ProgressLogger <: Progress # ? See extension for methods
     info::LogLogger
     Progress::Any
@@ -401,6 +413,7 @@ include("Expansion.jl")
 include("backends/Sequential.jl")
 include("backends/Threaded.jl")
 include("backends/Pmap.jl")
+include("backends/Asyncmap.jl")
 
 
 # * Test utilities
