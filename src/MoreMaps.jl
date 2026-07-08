@@ -42,7 +42,7 @@ function _open_channel!(P::ChannelProgress, ::Type{T}, buffer::Int = _CHANNEL_BU
 end
 
 function _close_consumer!(P::ChannelProgress, sentinel) # in-band close signal, then drain
-    put!(P.channel, sentinel)
+    put!(P.channel::RemoteChannel, sentinel)
     c = P.consumer
     c === nothing || wait(c::Task)
     return
