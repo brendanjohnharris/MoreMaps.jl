@@ -81,6 +81,20 @@ end
         @test_throws "return type" (@inferred map(f, C, x))
         @test map(f, C, x) == map(f, x)
 
+        # * Batch size edge cases
+        x10 = randn(10)
+        for bs in (0, 1, 3, 100) # auto, minimal, non-divisible, > N
+            C = Chart(MoreMaps.Daggermap(; batchsize = bs))
+            @test map(f, C, x10) == map(f, x10)
+        end
+
+        # * Options take effect: pin all tasks to a single worker. Use a named function;
+        #   testitem-local closures cannot deserialize on workers.
+        w = first(Distributed.workers())
+        C = Chart(MoreMaps.Daggermap(; single = w, batchsize = 2))
+        ids = getfield.(map(MoreMaps.cpu_intensive_task, C, fill(10, 6)), :worker_id)
+        @test all(==(w), ids)
+
         x = 1:1000:1000000
         C = Chart(MoreMaps.Daggermap(), LogLogger(10))
         @inferred map(MoreMaps.cpu_intensive_task, C, x)

@@ -74,14 +74,15 @@ end
 function init_log!(P::MoreMaps.ProgressLogger, total)
     P.info.total = total
     P.info.current = Atomic{Int}(0)
-    P.info.channel = RemoteChannel(() -> Channel{Bool}(P.info.nlogs + 1), 1)
+    P.info.started_at = time()
+    P.info.channel = RemoteChannel(() -> Channel{Bool}(max(P.info.nlogs, 1) + 1), 1)
     P.info.lck = ReentrantLock()
 
     # * Start progress
     @logmsg PLG.ProgressLevel Progress(P.Progress.id, 0.0; name = P.Progress.name)
 
-    every = max(1, div(P.info.total, P.info.nlogs))
-    return @async while take!(P.info.channel)
+    every = MoreMaps._progress_every(P.info.total, P.info.nlogs)
+    return P.info.consumer = @async while take!(P.info.channel)
         Threads.lock(P.info.lck) do
             Threads.atomic_add!(P.info.current, 1)
             progress = P.info.current[] * every / P.info.total

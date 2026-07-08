@@ -20,14 +20,43 @@ abstract type Backend end
 struct Sequential <: Backend end # ? Regular sequential map
 struct Threaded <: Backend end # ? Threads.@threads
 struct Pmap <: Backend end
-struct Daggermap <: Backend
-    options::Base.Pairs
+struct Daggermap{O <: NamedTuple} <: Backend
+    options::O # Forwarded to Dagger.Options
+    batchsize::Int # Elements per Dagger task; 0 = auto
 end
-Daggermap(; kwargs...) = Daggermap(kwargs)
+Daggermap(; batchsize::Int = 0, kwargs...) = Daggermap(NamedTuple(kwargs), batchsize)
 export Daggermap
 
 # * Logging backends
 abstract type Progress end
+
+# Loggers that ship per-element events over a RemoteChannel to a driver-side consumer Task.
+# Concrete subtypes are mutable with fields channel::Union{Nothing, RemoteChannel{Channel{T}}}
+# and consumer::Union{Nothing, Task}.
+abstract type ChannelProgress <: Progress end
+
+const _CHANNEL_BUFFER = 256 # Bounded; producers block briefly under burst, consumer drains
+
+function _open_channel!(P::ChannelProgress, ::Type{T}, buffer::Int = _CHANNEL_BUFFER) where {T}
+    return P.channel = RemoteChannel(() -> Channel{T}(buffer), 1)
+end
+
+function _close_consumer!(P::ChannelProgress, sentinel) # in-band close signal, then drain
+    put!(P.channel, sentinel)
+    c = P.consumer
+    c === nothing || wait(c::Task)
+    return
+end
+
+# Tasks are not serializable; null the consumer when shipping a logger to workers.
+function Serialization.serialize(s::Serialization.AbstractSerializer, P::T) where {T <: ChannelProgress}
+    Serialization.serialize_cycle(s, P) && return
+    Serialization.serialize_type(s, T, true)
+    for f in fieldnames(T)
+        Serialization.serialize(s, f === :consumer ? nothing : getfield(P, f))
+    end
+    return
+end
 
 _progress_every(total::Int, nlogs::Int) = nlogs <= 0 ? 1 : max(1, div(total, nlogs))
 
@@ -46,28 +75,20 @@ end
 
 include("LogLogger.jl")
 include("QualityLogger.jl")
+include("CallbackLogger.jl")
+include("CompositeLogger.jl")
 mutable struct ProgressLogger <: Progress # ? See extension for methods
     info::LogLogger
     Progress::Any
 end
 export ProgressLogger
-mutable struct TermLogger <: Progress # ? See extension for methods
+mutable struct TermLogger <: ChannelProgress # ? See extension for methods
     nlogs::Int
     Progress::Any
     channel::Union{Nothing, RemoteChannel{Channel{Bool}}}
     consumer::Union{Nothing, Task}
 end
 export TermLogger
-
-function Serialization.serialize(s::Serialization.AbstractSerializer, P::TermLogger)
-    Serialization.serialize_cycle(s, P) && return
-    Serialization.serialize_type(s, TermLogger, true)
-    for f in fieldnames(TermLogger)
-        v = getfield(P, f)
-        Serialization.serialize(s, f === :consumer ? nothing : v)
-    end
-    return
-end
 
 """
     NoProgress()
@@ -144,7 +165,7 @@ leaf(C::Chart{L}) where {L} = L
 backend(C::Chart) = C.backend
 progress(C::Chart) = C.progress
 expansion(C::Chart) = C.expansion
-hasexpansion(C::Chart{B, P, L, E}) where {B, P, L, E} = !(E <: NoExpansion)
+hasexpansion(C::Chart{L, B, P, E}) where {L, B, P, E} = !(E <: NoExpansion)
 
 init_log!(C::Chart, N) = init_log!(progress(C), N, C) # * Specialized when defining a logger type
 log_log!(C::Chart, args...) = log_log!(progress(C), args...)

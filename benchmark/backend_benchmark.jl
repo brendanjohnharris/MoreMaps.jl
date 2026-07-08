@@ -1,3 +1,6 @@
+# Backend benchmark (not part of the test suite). Run with:
+#   julia --project=benchmark -e 'using Pkg; Pkg.develop(path="."); Pkg.instantiate()'
+#   julia --project=benchmark benchmark/backend_benchmark.jl
 using BenchmarkTools
 using Distributed
 using Dagger

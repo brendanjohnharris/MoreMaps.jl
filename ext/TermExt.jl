@@ -61,7 +61,7 @@ end
 function init_log!(P::MoreMaps.TermLogger, N)
     Term.Progress.addjob!(P.Progress; N)
     Term.Progress.start!(P.Progress)
-    P.channel = RemoteChannel(() -> Channel{Bool}(N + 1), 1)
+    MoreMaps._open_channel!(P, Bool)
 
     job = last(P.Progress.jobs)
     every = P.nlogs == 0 ? 1 : max(1, div(N, P.nlogs))
@@ -77,9 +77,7 @@ end
 log_log!(P::MoreMaps.TermLogger, i) = put!(P.channel::RemoteChannel{Channel{Bool}}, true)
 
 function close_log!(P::MoreMaps.TermLogger)
-    put!(P.channel::RemoteChannel{Channel{Bool}}, false)
-    consumer = P.consumer
-    consumer === nothing || wait(consumer::Task)
+    MoreMaps._close_consumer!(P, false)
     return Term.Progress.stop!(P.Progress)
 end
 

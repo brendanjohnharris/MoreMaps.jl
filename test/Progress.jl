@@ -125,6 +125,108 @@ end
     end
 end
 
+@testitem "ProgressLogger nlogs=0" setup = [Setup] begin
+    # Regression: nlogs = 0 used to throw DivideError in the extension's init_log!
+    x = randn(10)
+    C = Chart(MoreMaps.ProgressLogger(0))
+
+    logger = TestLogger(; min_level = ProgressLogging.ProgressLevel)
+    y = with_logger(logger) do
+        map(identity, C, x)
+    end
+    @test y == map(identity, x)
+    @test sum(map(x -> x.message.done, logger.logs)) == 1
+end
+
+@testitem "CallbackLogger" setup = [Setup] begin
+    x = randn(10)
+    f = x -> x^2
+
+    infos = []
+    C = Chart(CallbackLogger(info -> push!(infos, info)))
+    y = @inferred map(f, C, x)
+
+    @test y == map(f, x)
+    @test length(infos) == length(x)
+    @test map(info -> info.done, infos) == 1:length(x)
+    @test all(info -> info.total == length(x), infos)
+    @test all(info -> info.elapsed >= 0, infos)
+    @test sort(map(info -> info.y, infos)) == sort(map(f, x))
+    @test sort(map(info -> info.i, infos)) == 1:length(x)
+end
+
+@testitem "CallbackLogger Pmap backend" setup = [Setup] begin
+    using Distributed
+
+    try
+        addprocs(2)
+        @everywhere using MoreMaps
+
+        x = randn(10)
+        infos = [] # Mutated on the driver only; callback runs on the consumer task
+        C = Chart(MoreMaps.Pmap(), CallbackLogger(info -> push!(infos, info)))
+        y = map(identity, C, x)
+
+        @test y == map(identity, x)
+        @test length(infos) == length(x)
+        @test map(info -> info.done, infos) == 1:length(x)
+        @test sort(map(info -> info.i, infos)) == 1:length(x)
+    finally
+        nprocs() > 1 && rmprocs()
+    end
+end
+
+@testitem "CompositeLogger" setup = [Setup] begin
+    x = randn(10)
+    N = 10
+
+    # * LogLogger and CallbackLogger children both fire
+    count = Ref(0)
+    C = Chart(CompositeLogger(MoreMaps.LogLogger(0), CallbackLogger(_ -> count[] += 1)))
+    logger = TestLogger()
+    y = with_logger(logger) do
+        map(identity, C, x)
+    end
+    @test y == map(identity, x)
+    @test length(logger.logs) == length(x) + 1
+    @test count[] == length(x)
+
+    # * QualityLogger child receives the produced value y
+    io = IOBuffer()
+    q = MoreMaps.QualityLogger(; io = io, width = 3)
+    C = Chart(CompositeLogger(q, CallbackLogger(_ -> nothing)))
+    out = map(x -> NaN, C, x)
+    @test all(isnan, out)
+    @test q.done == length(x)
+    @test occursin("█", String(take!(io)))
+end
+
+@testitem "LogLogger Daggermap backend" setup = [Setup] begin
+    using Distributed
+    using Dagger
+
+    try
+        addprocs(2)
+        @everywhere using MoreMaps, Dagger
+
+        x = randn(10)
+        C = Chart(MoreMaps.Daggermap(; batchsize = 3), MoreMaps.LogLogger(0))
+
+        logger = TestLogger()
+        y = with_logger(logger) do
+            map(identity, C, x)
+        end
+
+        @test y == map(identity, x)
+        @test length(logger.logs) == length(x) + 1
+        @test map(logger.logs) do l
+            occursin("Progress: ", string(l))
+        end |> all
+    finally
+        nprocs() > 1 && rmprocs()
+    end
+end
+
 @testitem "Expansion progress" setup = [Setup] begin
     x = randn(10)
     y = randn(10)

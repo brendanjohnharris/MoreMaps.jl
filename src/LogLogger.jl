@@ -31,7 +31,7 @@ julia> C = Chart(LogLogger(4, Warn));
 julia> map(x -> (sleep(0.5); x + 1), C, [1, 2, 3, 4]);
 ```
 """
-Base.@kwdef mutable struct LogLogger <: Progress
+Base.@kwdef mutable struct LogLogger <: ChannelProgress
     nlogs::Int = 10
     level::LogLevel = Info
     current::Atomic{Int} = Atomic{Int}(0)
@@ -54,16 +54,6 @@ Base.@kwdef mutable struct LogLogger <: Progress
     end
 end
 
-function Serialization.serialize(s::Serialization.AbstractSerializer, P::LogLogger)
-    Serialization.serialize_cycle(s, P) && return
-    Serialization.serialize_type(s, LogLogger, true)
-    for f in fieldnames(LogLogger)
-        v = getfield(P, f)
-        Serialization.serialize(s, f === :consumer ? nothing : v)
-    end
-    return
-end
-
 function _format_elapsed_total(elapsed::Real, estimated_total::Real)
     return "$(_format_human_time(elapsed)) / $(_format_human_time(estimated_total))"
 end
@@ -72,7 +62,7 @@ function init_log!(P::LogLogger, total)
     P.total = total
     P.current = Atomic{Int}(0)
     P.started_at = time()
-    P.channel = RemoteChannel(() -> Channel{Bool}(max(P.nlogs, 1) + 1), 1)
+    _open_channel!(P, Bool, max(P.nlogs, 1) + 1)
     P.lck = ReentrantLock()
 
     @logmsg P.level "Progress: 0 / $(P.total) (??s / ??s)"
@@ -97,9 +87,4 @@ function log_log!(P::LogLogger, i)
     every = _progress_every(P.total, P.nlogs)
     return i % every == 0 && put!(P.channel::RemoteChannel{Channel{Bool}}, true)
 end
-function close_log!(P::LogLogger)
-    put!(P.channel::RemoteChannel{Channel{Bool}}, false)
-    consumer = P.consumer
-    consumer === nothing || wait(consumer::Task)
-    return
-end
+close_log!(P::LogLogger) = _close_consumer!(P, false)

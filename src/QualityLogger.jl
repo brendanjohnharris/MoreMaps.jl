@@ -1,5 +1,3 @@
-import Serialization: serialize, AbstractSerializer, serialize_type
-
 export QualityLogger
 
 const _QL_RED = "\e[31m"
@@ -56,7 +54,7 @@ If `width == 0`, row width defaults to `max(floor(Int, sqrt(total)), 50)` at run
 The first `status_width` characters of each row are reserved for row number + ETA.
 Set `nlogs = 0` to flush every update, or a positive value to flush at that granularity.
 """
-Base.@kwdef mutable struct QualityLogger <: Progress
+Base.@kwdef mutable struct QualityLogger <: ChannelProgress
     nlogs::Int = 0
     width::Int = 0
     status_width::Int = 20
@@ -72,16 +70,6 @@ Base.@kwdef mutable struct QualityLogger <: Progress
     started_at::Float64 = 0.0
     channel::Union{Nothing, RemoteChannel{Channel{Float64}}} = nothing
     consumer::Union{Nothing, Task} = nothing
-end
-
-function serialize(s::AbstractSerializer, P::QualityLogger)
-    Serialization.serialize_cycle(s, P) && return
-    Serialization.serialize_type(s, QualityLogger, true)
-    for f in fieldnames(QualityLogger)
-        v = getfield(P, f)
-        serialize(s, f === :consumer ? nothing : v)
-    end
-    return
 end
 
 _ql_every(P::QualityLogger) = P.nlogs == 0 ? 1 : max(1, div(max(P.total, 1), P.nlogs))
@@ -285,7 +273,7 @@ function init_log!(P::QualityLogger, total, C = nothing)
     P.row_pos = 0
     P.block_width = P.width > 0 ? P.width : min(floor(Int, sqrt(max(total, 1)) * 2), 50)
     P.started_at = time()
-    P.channel = RemoteChannel(() -> Channel{Float64}(max(total, 1) + 1), 1)
+    _open_channel!(P, Float64)
 
     io = _ql_active_io(P)
     if !isnothing(C)
@@ -316,9 +304,4 @@ end
 
 log_log!(P::QualityLogger, i) = put!(P.channel::RemoteChannel{Channel{Float64}}, _ql_score(P.quality(nothing)))
 
-function close_log!(P::QualityLogger)
-    put!(P.channel::RemoteChannel{Channel{Float64}}, NaN)
-    consumer = P.consumer
-    consumer === nothing || wait(consumer::Task)
-    return
-end
+close_log!(P::QualityLogger) = _close_consumer!(P, NaN)

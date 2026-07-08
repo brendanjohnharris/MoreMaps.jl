@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.4.0] - 2026-07-08
+
+### Breaking
+- `Daggermap` now stores options as a `NamedTuple` (was `Base.Pairs`) and gains a `batchsize` field; the positional constructor signature changed. Keyword construction (`Daggermap(; single = 1)`) is unchanged.
+
+### Added
+- `CallbackLogger`: calls a user function per completed element with `(; i, done, total, y, elapsed)`, always on the driver process.
+- `CompositeLogger`: forwards progress events to multiple child loggers.
+- `Daggermap` batching: elements are grouped into `batchsize` chunks (default auto: four batches per process), one Dagger task per chunk, amortizing scheduler overhead.
+- `Daggermap` options are passed via `Dagger.Options` (the documented function-form API) instead of splatting into `Dagger.@spawn`, and are now covered by tests.
+
+### Changed
+- Channel-holding loggers now share a `ChannelProgress` abstract type with common channel setup, consumer shutdown, and `Serialization.serialize` (removes four copies of the same plumbing).
+- `QualityLogger` and `TermLogger` progress channels are bounded (were sized to the full input length).
+
+### Fixed
+- `ProgressLogger` with `nlogs = 0` no longer throws `DivideError`.
+- `ProgressLogger` now stores its consumer task, so `close_log!` waits for pending progress events (fixes a shutdown race).
+
+### Maintenance
+- Removed dead `src/Threaded.jl` (the real backend lives in `src/backends/Threaded.jl`).
+- Moved `test/backend_benchmark.jl` to `benchmark/` with its own `Project.toml` (it needs CairoMakie, which the test suite does not declare).
+
 ## [0.3.0] - 2026-05-10
 
 ### Added
@@ -73,7 +96,8 @@ First tagged release.
 ### Notes
 - Generated from `PkgTemplates`.
 
-[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.0...v0.2.1
 [0.2.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.1.0...v0.2.0

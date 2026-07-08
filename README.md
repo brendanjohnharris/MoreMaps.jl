@@ -84,6 +84,8 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 - `ProgressLogger`: Uses `ProgressLogging.jl`
 - `TermLogger`: Uses `Term.jl`
 - `QualityLogger`: Shows a quality metric (e.g. percentage of NaN values) in a progress array
+- `CallbackLogger`: Calls a user function per completed element (a programmatic sink)
+- `CompositeLogger`: Forwards progress events to multiple child loggers
 
 ## Leaf types
 
@@ -184,10 +186,10 @@ A backend is a subtype of `MoreMaps.Backend`. To add a new backend `MyBackend`:
 
     The kernel receives:
 
-    - `g(i, x...)` — calls the user function and emits a progress log. Always call this rather than `f` directly.
-    - `ys` — a vector of zero-dimensional views into the preallocated output. Assign with `ys[i][] = value`.
-    - `idxs` — the iteration indices (length is the total work count).
-    - `xs` — leaf views over each input iterable.
+    - `g(i, x...)`: calls the user function and emits a progress log. Always call this rather than `f` directly.
+    - `ys`: a vector of zero-dimensional views into the preallocated output. Assign with `ys[i][] = value`.
+    - `idxs`: the iteration indices (length is the total work count).
+    - `xs`: leaf views over each input iterable.
 
     The logger lifecycle (`init_log!` / `close_log!`) and exception safety are handled by `_run_map`.
 
@@ -195,7 +197,7 @@ A backend is a subtype of `MoreMaps.Backend`. To add a new backend `MyBackend`:
 
 A progress logger is a subtype of `MoreMaps.Progress`. To add a new logger `MyLogger`:
 
-1.  Define the type. If it owns a `RemoteChannel` and consumer `Task`, type those fields concretely (or as `Union{Nothing, ...}` if construction precedes initialization — but assert concretely at use sites):
+1.  Define the type. If it owns a `RemoteChannel` and consumer `Task`, type those fields concretely (or as `Union{Nothing, ...}` if construction precedes initialization, but assert concretely at use sites):
 
     ``` julia
     mutable struct MyLogger <: MoreMaps.Progress
@@ -206,21 +208,21 @@ A progress logger is a subtype of `MoreMaps.Progress`. To add a new logger `MyLo
 2.  Implement three methods:
 
     ``` julia
-    MoreMaps.init_log!(P::MyLogger, total::Int)            # called once before mapping
-    MoreMaps.log_log!(P::MyLogger, i::Int)                 # called per element
-    MoreMaps.close_log!(P::MyLogger)                       # called once after mapping (in a finally block)
+    MoreMaps.init_log!(P::MyLogger, total::Int) # called once before mapping
+    MoreMaps.log_log!(P::MyLogger, i::Int) # called per element
+    MoreMaps.close_log!(P::MyLogger) # called once after mapping (in a finally block)
     ```
 
     Optional extensions:
 
-    - `MoreMaps.log_log!(P::MyLogger, i::Int, y)` — receive the produced value (e.g. for `QualityLogger`-style scoring). The default forwards to the two-argument form.
-    - `MoreMaps.init_log!(P::MyLogger, total::Int, C::Chart)` — receive the Chart for richer summaries. The default forwards to the two-argument form.
+    - `MoreMaps.log_log!(P::MyLogger, i::Int, y)`: receive the produced value (e.g. for `QualityLogger`-style scoring). The default forwards to the two-argument form.
+    - `MoreMaps.init_log!(P::MyLogger, total::Int, C::Chart)`: receive the Chart for richer summaries. The default forwards to the two-argument form.
 
-3.  If the logger holds a `Task` field, define a `Serialization.serialize` method that nulls it out so the logger can cross worker boundaries (see `LogLogger.jl` or `QualityLogger.jl` for the pattern).
+3.  If the logger ships events over a `RemoteChannel` to a driver-side consumer `Task`, subtype `MoreMaps.ChannelProgress` instead of `MoreMaps.Progress` and name the fields `channel` and `consumer`: this provides `MoreMaps._open_channel!(P, T)`, `MoreMaps._close_consumer!(P, sentinel)`, and a `Serialization.serialize` method that nulls the consumer so the logger can cross worker boundaries (see `LogLogger.jl` or `CallbackLogger.jl` for the pattern).
 
 ## Shared helpers
 
 Useful utilities exported internally for logger implementations:
 
-- `MoreMaps._progress_every(total, nlogs)` — compute update granularity.
-- `MoreMaps._format_human_time(seconds)` — pretty-print a duration.
+- `MoreMaps._progress_every(total, nlogs)`: compute update granularity.
+- `MoreMaps._format_human_time(seconds)`: pretty-print a duration.
