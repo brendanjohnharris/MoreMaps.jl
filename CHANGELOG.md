@@ -1,6 +1,9 @@
 # Changelog
 
-## [0.5.0] - 2026-07-09
+## [0.4.0] - 2026-07-08
+
+### Breaking
+- `Daggermap` now stores options as a `NamedTuple` (was `Base.Pairs`) and gains a `batchsize` field; the positional constructor signature changed. Keyword construction (`Daggermap(; single = 1)`) is unchanged.
 
 ### Added
 - `Asyncmap` backend (`Base.asyncmap`): single-process concurrency for IO-bound work.
@@ -8,16 +11,6 @@
 - `Polyestered` backend (extension, weakdep Polyester): `@batch` threading with very low per-iteration overhead; supports only `NoProgress`/`Monitor` (Polyester tasks must not yield, and channel-backed loggers yield on `put!`).
 - `Monitor`: a progress-slot component that cheaply records each job's wall time, driver-side allocation bytes/count, GC time, element count, and backend; zero per-element cost. Compose with loggers via `CompositeLogger`.
 - README table of backends and when each is useful, based on the unified benchmark.
-
-### Changed
-- `benchmark/backend_benchmark.jl` reworked into a unified sweep (per-element overhead, CPU-bound and IO-bound grids across all seven backends).
-
-## [0.4.0] - 2026-07-08
-
-### Breaking
-- `Daggermap` now stores options as a `NamedTuple` (was `Base.Pairs`) and gains a `batchsize` field; the positional constructor signature changed. Keyword construction (`Daggermap(; single = 1)`) is unchanged.
-
-### Added
 - `CallbackLogger`: calls a user function per completed element with `(; i, done, total, y, elapsed)`, always on the driver process.
 - `CompositeLogger`: forwards progress events to multiple child loggers.
 - `Daggermap` batching: elements are grouped into `batchsize` chunks (default auto: four batches per process), one Dagger task per chunk, amortizing scheduler overhead.
@@ -26,6 +19,7 @@
 ### Changed
 - Channel-holding loggers now share a `ChannelProgress` abstract type with common channel setup, consumer shutdown, and `Serialization.serialize` (removes four copies of the same plumbing).
 - `QualityLogger` and `TermLogger` progress channels are bounded (were sized to the full input length).
+- `benchmark/backend_benchmark.jl` reworked into a unified sweep (per-element overhead, CPU-bound and IO-bound grids across all seven backends).
 
 ### Fixed
 - `ProgressLogger` with `nlogs = 0` no longer throws `DivideError`.

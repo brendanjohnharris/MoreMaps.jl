@@ -74,11 +74,11 @@ y == map(sqrt, x) # Default behavior reproduces Base.map
 
 | Backend | Requires | Overhead per element\* | Use when |
 |----|----|----|----|
-| `Sequential` | — | ~0.2 µs | Default. Small or fast maps, debugging, deterministic execution order |
+| `Sequential` | — | ~0.2 µs | Default; small or fast maps, debugging, deterministic execution order |
 | `Threaded` | `julia -t` | ~4 µs | CPU-bound elements on one machine; `Threads.@threads` |
-| `OhMyThreaded` | OhMyThreads.jl, `julia -t` | ~0.2 µs | Uneven per-element cost; chunked, load-balanced scheduling. Consistently outperformed `Threaded` in our benchmarks |
+| `OhMyThreaded` | OhMyThreads.jl, `julia -t` | ~0.2 µs | Uneven per-element cost; chunked, load-balanced scheduling. Prefer over `Threaded` |
 | `Polyestered` | Polyester.jl, `julia -t` | ~1 µs | Very cheap elements at large N. Supports only `NoProgress` and `Monitor` (Polyester tasks must not yield) |
-| `Asyncmap` | — | ~5 µs | IO-bound elements (file loading, network): tasks overlap while waiting. Concurrency, not parallelism; no gain for CPU-bound work |
+| `Asyncmap` | — | ~5 µs | IO-bound elements (file loading, network): tasks overlap while waiting. No gain for CPU-bound work |
 | `Pmap` | `addprocs` | ~100 µs | Expensive elements (more than ~10 ms each) across processes; below that, serialization dominates |
 | `Daggermap` | Dagger.jl, `addprocs` | ~3 µs (batched) | Heterogeneous or multi-node resources; per-task scheduler options (`scope`, `occupancy`) via `Daggermap(; kwargs...)` |
 
