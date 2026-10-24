@@ -45,6 +45,6 @@ end
         @test M.time > 0 # bytes/allocs are driver-only for distributed backends
         @test M.backend isa MoreMaps.Pmap
     finally
-        nprocs() > 1 && rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end

@@ -50,7 +50,7 @@ Block color bands:
 - `[0.75, 1.0)`: green
 - `1.0`: blue
 
-If `width == 0`, row width defaults to `max(floor(Int, sqrt(total)), 50)` at runtime.
+If `width == 0`, row width defaults to `min(floor(Int, 2sqrt(total)), 50)` at runtime.
 The first `status_width` characters of each row are reserved for row number + ETA.
 Set `nlogs = 0` to flush every update, or a positive value to flush at that granularity.
 """

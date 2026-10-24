@@ -11,7 +11,7 @@ A flexible mapping framework for Julia that provides different parallel backends
 
 ## Features
 
-- **Multiple backends**: Sequential, Threads, Distributed, and Dagger execution
+- **Multiple backends**: sequential, threaded (Threads, OhMyThreads, Polyester), async, Distributed, and Dagger execution
 - **Progress tracking**: Support for various progress-logging backends
 - **Nested array support**: Map over specific leaf types in nested array structures
 - **Cartesian expansions**: Easy cartesian product iterations
@@ -69,6 +69,8 @@ C = Chart()
 y = map(sqrt, C, x)
 y == map(sqrt, x) # Default behavior reproduces Base.map
 ```
+
+The output element type is inferred from `f` and the input element types: `map(identity, Chart(), Any[1, 2.5])` returns a `Vector{Any}`, where `Base.map` narrows to `Vector{Real}`.
 
 ## Backends
 

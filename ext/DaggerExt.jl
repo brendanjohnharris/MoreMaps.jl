@@ -15,7 +15,7 @@ Elements are grouped into batches of `batchsize` and one Dagger task is spawned 
 amortizing the per-task scheduler overhead. `batchsize = 0` (the default) picks
 `cld(N, 4 * nprocs())`, giving each process about four batches for load balancing.
 The remaining `kwargs` are passed to `Dagger.Options` and apply to each batch task
-(e.g. `scope`, `single`, `occupancy`).
+(e.g. `scope`, `occupancy`).
 
 Best for:
 - Very large computations
@@ -51,7 +51,7 @@ julia> result = map(sum, C_nested, nested_data)
   7
  11
 
-julia> C_opts = Chart(Daggermap(; single = 1, batchsize = 2)); # Options for Dagger tasks
+julia> C_opts = Chart(Daggermap(; scope = Dagger.scope(worker = 1), batchsize = 2)); # Options for Dagger tasks
 
 julia> result = map(x -> x + 10, C_opts, [1, 2, 3])
 3-element Vector{Int64}:

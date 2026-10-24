@@ -85,6 +85,6 @@ function init_log!(P::LogLogger, total)
 end
 function log_log!(P::LogLogger, i)
     every = _progress_every(P.total, P.nlogs)
-    return i % every == 0 && put!(P.channel::RemoteChannel{Channel{Bool}}, true)
+    return (i % every == 0 || i == P.total) && put!(P.channel::RemoteChannel{Channel{Bool}}, true) # Last log reaches total
 end
 close_log!(P::LogLogger) = _close_consumer!(P, false)

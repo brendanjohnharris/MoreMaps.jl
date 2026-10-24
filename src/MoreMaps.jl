@@ -337,7 +337,7 @@ function preallocate(C, f, itrs)
     if leaf(C) === Union{} # This option is NOT type stable... yet.
         T = Core.Compiler.return_type(f, Tuple{map(eltype ∘ eltype, xs)...})
     elseif leaf(C) === All # Stable; regular map
-        T = Core.Compiler.return_type(f, map(first, itrs) |> typeof)
+        T = Core.Compiler.return_type(f, Tuple{map(eltype, itrs)...}) # Not `first`: wrong for empty or mixed-type inputs
     else # Stable
         T = Core.Compiler.return_type(f, NTuple{length(itrs), leaf(C)})
     end

@@ -63,6 +63,13 @@ end
     @test y == map(f, x)
     @test length(logger.logs) ≥ N + 1
 
+    N = 3 # Last log still reaches the total
+    logger = TestLogger()
+    with_logger(logger) do
+        map(f, Chart(MoreMaps.LogLogger(N)), x)
+    end
+    @test occursin("Progress: 10 / 10", string(last(logger.logs).message))
+
     # * Different log level
     N = 10
     C = Chart(MoreMaps.LogLogger(N, Warn))
@@ -121,7 +128,7 @@ end
             string(first(logger.logs).message)
         )
     finally
-        nprocs() > 1 && rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
 
@@ -172,7 +179,7 @@ end
         @test map(info -> info.done, infos) == 1:length(x)
         @test sort(map(info -> info.i, infos)) == 1:length(x)
     finally
-        nprocs() > 1 && rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
 
@@ -223,7 +230,7 @@ end
             occursin("Progress: ", string(l))
         end |> all
     finally
-        nprocs() > 1 && rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
 
@@ -275,7 +282,7 @@ end
         y = map(abs, C, x)
         @test y == map(abs, x)
     finally
-        nprocs() > 1 && rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
 
@@ -340,6 +347,6 @@ end
         printed = String(take!(io))
         @test occursin("█", printed)
     finally
-        nprocs() > 1 && rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
