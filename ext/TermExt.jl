@@ -18,30 +18,20 @@ A progress logger that creates rich terminal progress bars using Term.jl.
 
 ## Usage
 
-```jldoctest
-julia> using MoreMaps, Term
+```jldoctest; output = false
+using MoreMaps, Term
 
-julia> P = TermLogger(5);
+P = TermLogger(5)
+C = Chart(P)
+data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+result = redirect_stdout(devnull) do # the bar is drawn on the terminal; keep it out of the test
+    map(x -> (sleep(0.1); x^2), C, data)
+end
+result == data .^ 2
 
-julia> C = Chart(P);
+# output
 
-julia> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
-
-julia> result = map(x -> (sleep(0.5); x^2), C, data); # Will display a progress bar
-
-julia> result
-10-element Vector{Int64}:
-   1
-   4
-   9
-  16
-  25
-  36
-  49
-  64
-  81
- 100
-
+true
 ```
 
 **Note**: Requires Term.jl to be loaded. Creates visual progress bars in the terminal with customizable

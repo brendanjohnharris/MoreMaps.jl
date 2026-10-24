@@ -1,9 +1,9 @@
 # Changelog
 
-## [0.4.0] - 2026-07-08
+## [0.4.0] - 2026-10-25
 
 ### Breaking
-- `Daggermap` now stores options as a `NamedTuple` (was `Base.Pairs`) and gains a `batchsize` field; the positional constructor signature changed. Keyword construction (`Daggermap(; single = 1)`) is unchanged.
+- `Daggermap` now stores options as a `NamedTuple` (was `Base.Pairs`) and gains a `batchsize` field; the positional constructor signature changed. Keyword construction (`Daggermap(; scope = Dagger.scope(worker = 1))`) is unchanged.
 
 ### Added
 - `Asyncmap` backend (`Base.asyncmap`): single-process concurrency for IO-bound work.
@@ -19,13 +19,21 @@
 ### Changed
 - Channel-holding loggers now share a `ChannelProgress` abstract type with common channel setup, consumer shutdown, and `Serialization.serialize` (removes four copies of the same plumbing).
 - `QualityLogger` and `TermLogger` progress channels are bounded (were sized to the full input length).
+- `Dagger` compat `0.19 - 0.22`; examples use `scope` instead of the deprecated `single`.
 - `benchmark/backend_benchmark.jl` reworked into a unified sweep (per-element overhead, CPU-bound and IO-bound grids across all seven backends).
 
 ### Fixed
+- Output element type comes from the inputs' `eltype`, not the first element (`Any[1, 2.5]` threw `InexactError` or was narrowed to `Int`).
+- `map` over an empty array no longer throws `BoundsError`.
+- `LogLogger` and `ProgressLogger` report completion when the length is not a multiple of `nlogs`.
+- Extension docstrings are doctested; the `Daggermap`, `ProgressLogger` and `TermLogger` examples are fixed.
+- `Threaded` docstring: results keep input order. `QualityLogger` docstring: default width formula.
 - `ProgressLogger` with `nlogs = 0` no longer throws `DivideError`.
 - `ProgressLogger` now stores its consumer task, so `close_log!` waits for pending progress events (fixes a shutdown race).
 
 ### Maintenance
+- Tests remove their workers (`rmprocs()` with no arguments removed none).
+- README recordings link to the `v0.3.0` release that hosts them, not the latest tag.
 - Removed dead `src/Threaded.jl` (the real backend lives in `src/backends/Threaded.jl`).
 - Moved `test/backend_benchmark.jl` to `benchmark/` with its own `Project.toml` (it needs CairoMakie, which the test suite does not declare).
 
@@ -34,8 +42,8 @@
 ### Added
 - `QualityLogger` backend: a four-color, terminal-rendered progress logger that reports per-iteration completion state in addition to overall progress.
 - `Tuple` and `NamedTuple` support in `map` calls, with improved type stability for tuple inputs.
-- Ability to pass `Progress` or `Backend` types (not just instances) directly to mapping calls, so callers can opt in to a backend without constructing it by hand.
-- `LogLogger` now accepts `nlogs = 0` to suppress per-iteration log output.
+- Ability to pass a `Progress` or `Backend` directly to `map` (e.g. `map(f, Threaded(), x)`) without wrapping it in a `Chart`.
+- `LogLogger` now accepts `nlogs = 0` to log every iteration.
 - README visualizations (animated GIFs) demonstrating each progress backend.
 - Monthly scheduled run added to the CI workflow.
 - Breaking: logging internals were generalized so progress backends share a common execution path.
@@ -102,8 +110,7 @@ First tagged release.
 ### Notes
 - Generated from `PkgTemplates`.
 
-[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.5.0...HEAD
-[0.5.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.4.0...v0.5.0
+[Unreleased]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.4.0...HEAD
 [0.4.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.1...v0.3.0
 [0.2.1]: https://github.com/brendanjohnharris/MoreMaps.jl/compare/v0.2.0...v0.2.1

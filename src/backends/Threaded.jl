@@ -38,8 +38,8 @@ julia> result = map(sum, C_nested, nested_data)
  11
 ```
 
-**Note**: Results may not be in deterministic order due to parallel execution.
-Use `Sequential()` if order matters or for debugging.
+**Note**: Elements run in no fixed order (results keep the input order); use `Sequential()`
+if `f` has order-dependent side effects, or for debugging.
 Performance depends on the number of threads available. Start Julia with `julia -t auto` or set the `JULIA_NUM_THREADS` environment variable.
 
 See also: [`Sequential`](@ref), [`Chart`](@ref)

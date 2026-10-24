@@ -22,14 +22,12 @@ Useful for applications that need standardized progress reporting (e.g., Pluto.j
 
 ## Usage
 
-```jldoctest; output = false
+```jldoctest
 julia> using MoreMaps, ProgressLogging
 
-julia> P = ProgressLogger(5)
-ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[]))
+julia> P = ProgressLogger(5);
 
-julia> C = Chart(P)
-Chart{MoreMaps.All, Sequential, ProgressLogger, NoExpansion}(Sequential(), ProgressLogger(LogLogger(5), ProgressLogging.Progress(UUIDs.UUID("00000000-0000-0000-0000-000000000000"), "Progress", 1.0, false, :normal, 0, 1.0, Dict{String, Any}(), Any[])), NoExpansion())
+julia> C = Chart(P);
 
 julia> data = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 
@@ -48,8 +46,7 @@ julia> result
   81
  100
 
-julia> # Works with any backend
-       C_threaded = Chart(Threaded(), ProgressLogger(3));
+julia> C_threaded = Chart(Threaded(), ProgressLogger(3)); # Works with any backend
 ```
 
 Best with:
@@ -85,7 +82,7 @@ function init_log!(P::MoreMaps.ProgressLogger, total)
     return P.info.consumer = @async while take!(P.info.channel)
         Threads.lock(P.info.lck) do
             Threads.atomic_add!(P.info.current, 1)
-            progress = P.info.current[] * every / P.info.total
+            progress = min(P.info.current[] * every, P.info.total) / P.info.total
             @logmsg PLG.ProgressLevel Progress(
                 P.Progress.id, progress;
                 name = P.Progress.name

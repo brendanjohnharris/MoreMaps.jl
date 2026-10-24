@@ -10,7 +10,9 @@ using TestItemRunner
     using OhMyThreads
     using Polyester
 
-    doctest(MoreMaps; manual = false)
+    exts = Base.get_extension.(Ref(MoreMaps), [:ProgressLoggingExt, :DaggerExt, :TermExt, :OhMyThreadsExt, :PolyesterExt])
+    @test all(!isnothing, exts)
+    doctest(nothing, Module[MoreMaps; exts]) # `doctest(MoreMaps)` skips extension docstrings
 end
 
 @run_package_tests
@@ -25,7 +27,7 @@ end
     using Distributed
 
     if nprocs() > 1
-        rmprocs()
+        rmprocs(Distributed.workers())
     end
 
     # Helper function to validate progress log messages
@@ -503,15 +505,9 @@ end
     using Asciicast
     cast_readme(MoreMaps)
 
-    repo = pkgdir(MoreMaps)
-    tag = try
-        readchomp(Cmd(`git describe --tags --abbrev=0`; dir = repo))
-    catch
-        m = match(r"^version\s*=\s*\"([^\"]+)\""m, read(joinpath(repo, "Project.toml"), String))
-        "v" * m.captures[1]
-    end
+    tag = "v0.3.0" # release hosting the gifs; bump after `gh release upload <tag> assets/*.gif`
     base = "https://github.com/brendanjohnharris/MoreMaps.jl/releases/download/$tag"
-    readme = joinpath(repo, "README.md")
+    readme = joinpath(pkgdir(MoreMaps), "README.md")
     str = read(readme, String)
     str = replace(str, r"assets/(output_\d+_@cast\.gif)" => SubstitutionString("$base/\\1"))
     write(readme, str)

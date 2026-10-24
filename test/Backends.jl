@@ -15,6 +15,10 @@
 
     # * Test passing jus ta backend, no Chart
     @test map(f, MoreMaps.Sequential(), x) == map(f, x)
+
+    # * Output eltype comes from the inputs' eltype, not their first element
+    @test map(f, Chart(), Float64[]) == Float64[]
+    @test map(identity, Chart(), Any[1, 2.5])[2] === 2.5
 end
 
 @testitem "Threaded" setup = [Setup] begin
@@ -31,12 +35,17 @@ end
     C = Chart(MoreMaps.Threaded(), Union{}) # * Generic map. Must specify a leaf other than Union{} for type stability
     @test_throws "return type" (@inferred map(f, C, x))
     @test map(f, C, x) == map(f, x)
+
+    @test map(x -> 2x, Chart(MoreMaps.Threaded()), Any[1, 2.5])[2] === 5.0 # was narrowed to Int
 end
 
 @testitem "Distributed" setup = [Setup] begin
     using Distributed
 
     try
+        addprocs(2)
+        @everywhere using MoreMaps
+
         x = randn(10)
         C = Chart(MoreMaps.Pmap())
         f = Base.Fix1(^, 2)
@@ -53,7 +62,7 @@ end
     catch e
         rethrow(e)
     finally
-        rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
 
@@ -91,7 +100,7 @@ end
         # * Options take effect: pin all tasks to a single worker. Use a named function;
         #   testitem-local closures cannot deserialize on workers.
         w = first(Distributed.workers())
-        C = Chart(MoreMaps.Daggermap(; single = w, batchsize = 2))
+        C = Chart(MoreMaps.Daggermap(; scope = Dagger.scope(worker = w), batchsize = 2))
         ids = getfield.(map(MoreMaps.cpu_intensive_task, C, fill(10, 6)), :worker_id)
         @test all(==(w), ids)
 
@@ -115,7 +124,7 @@ end
     catch e
         rethrow(e)
     finally
-        rmprocs()
+        nprocs() > 1 && rmprocs(Distributed.workers())
     end
 end
 
