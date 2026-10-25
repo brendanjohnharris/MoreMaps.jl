@@ -395,7 +395,7 @@ end
             @test_call target_modules = (MoreMaps,) map(identity, C_seq, x)
             @test_call target_modules = (MoreMaps,) map(x -> x + 1.0, C_seq, x)
             @test_call target_modules = (MoreMaps,) map(+, C_seq, x, x)
-            @test_call map(identity, C_thr, x)
+            @test_call target_modules = (MoreMaps,) map(identity, C_thr, x)
             @test_call target_modules = (MoreMaps,) map(identity, C_all, x)
         end
 
